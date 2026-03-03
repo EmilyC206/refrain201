@@ -87,6 +87,7 @@ def fetch_pending_contacts(limit: int = 100) -> list[dict[str, Any]]:
             },
         ],
         "properties": ["email", "firstname", "lastname", "jobtitle", "company"],
+        "associations": ["companies"],
         "limit": min(limit, 100),
     }
 
@@ -121,6 +122,7 @@ def batch_update_contacts(updates: list[dict[str, Any]]) -> list[str]:
 
     for i in range(0, len(updates), _BATCH_SIZE):
         chunk = updates[i : i + _BATCH_SIZE]
+        batch_num = i // _BATCH_SIZE + 1
         try:
             _check_cap("hubspot", cost=1)
             _increment_usage("hubspot", cost=1)
@@ -131,14 +133,68 @@ def batch_update_contacts(updates: list[dict[str, Any]]) -> list[str]:
                 timeout=30,
             )
             r.raise_for_status()
-            synced_ids.extend(item["id"] for item in chunk)
+            body = r.json()
+            synced_ids.extend(
+                result["id"] for result in body.get("results", [])
+            )
+            errors = body.get("errors", [])
+            if errors:
+                print(f"  WARN batch {batch_num} partial: {len(errors)} record(s) failed")
+                for err in errors[:3]:
+                    print(f"    {err.get('category', '?')}: {err.get('message', '')[:120]}")
         except RuntimeError:
-            # Cap exceeded — stop immediately, don't attempt further batches
             raise
         except Exception as exc:
-            print(f"  WARN batch {i // _BATCH_SIZE + 1} failed ({len(chunk)} contacts): {exc}")
+            print(f"  WARN batch {batch_num} failed ({len(chunk)} contacts): {exc}")
 
-        # Respect HubSpot's 10 req/s burst limit
+        time.sleep(0.1)
+
+    return synced_ids
+
+
+def batch_update_companies(updates: list[dict[str, Any]]) -> list[str]:
+    """
+    Writes company properties back to HubSpot in batches of BATCH_SIZE.
+    Each batch = 1 API call.  Sleeps 0.1 s between batches for rate limiting.
+
+    Each item in `updates` must be:
+        {"id": "<hs_company_id>", "properties": {"key": "value", ...}}
+
+    Returns the list of company IDs that were successfully written.
+    Deduplicates by company ID before sending (multiple contacts may share
+    a company — only the last enrichment per company is sent).
+    """
+    if not updates:
+        return []
+
+    seen: dict[str, dict] = {}
+    for item in updates:
+        seen[item["id"]] = item
+    deduped = list(seen.values())
+
+    synced_ids: list[str] = []
+
+    for i in range(0, len(deduped), _BATCH_SIZE):
+        chunk = deduped[i : i + _BATCH_SIZE]
+        try:
+            _check_cap("hubspot", cost=1)
+            _increment_usage("hubspot", cost=1)
+            r = httpx.post(
+                f"{_BASE}/crm/v3/objects/companies/batch/update",
+                headers=_HEADERS,
+                json={"inputs": chunk},
+                timeout=30,
+            )
+            r.raise_for_status()
+            body = r.json()
+            synced_ids.extend(
+                result["id"] for result in body.get("results", [])
+            )
+        except RuntimeError:
+            raise
+        except Exception as exc:
+            print(f"  WARN company batch {i // _BATCH_SIZE + 1} failed ({len(chunk)} companies): {exc}")
+
         time.sleep(0.1)
 
     return synced_ids
