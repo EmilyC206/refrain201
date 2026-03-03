@@ -32,6 +32,57 @@ def _extract_domain(email: str) -> str:
     return email.split("@")[-1].lower().strip() if "@" in email else ""
 
 
+# Domain-based fallback intelligence for targets where OSINT APIs return nothing.
+# Maps domain suffixes and exact domains to (industry, employee_range, hq_country).
+_DOMAIN_INTEL: dict[str, tuple[str, str, str]] = {
+    # Federal TLDs
+    ".gov":  ("Federal Government / Defense", "1001+", "US"),
+    ".mil":  ("Federal Government / Defense", "1001+", "US"),
+    # Contracting primes
+    "bah.com":               ("System Integration / Federal IT", "1001+", "US"),
+    "leidos.com":            ("System Integration / Federal IT", "1001+", "US"),
+    "caci.com":              ("System Integration / Federal IT", "1001+", "US"),
+    "gdit.com":              ("System Integration / Federal IT", "1001+", "US"),
+    "saic.com":              ("System Integration / Federal IT", "1001+", "US"),
+    "mantech.com":           ("System Integration / Federal IT", "1001+", "US"),
+    "peraton.com":           ("System Integration / Federal IT", "1001+", "US"),
+    "parsons.com":           ("System Integration / Federal IT", "1001+", "US"),
+    "accenturefederal.com":  ("System Integration / Federal IT", "1001+", "US"),
+    "deloitte.com":          ("System Integration / Federal IT", "1001+", "US"),
+    "cgifederal.com":        ("System Integration / Federal IT", "201-1000", "US"),
+    "northropgrumman.com":   ("System Integration / Federal IT", "1001+", "US"),
+    # MSSPs and cyber vendors
+    "optiv.com":             ("Managed Security Services", "1001+", "US"),
+    "guidepoint.com":        ("Managed Security Services", "201-1000", "US"),
+    "coalfire.com":          ("Managed Security Services", "201-1000", "US"),
+    "telos.com":             ("Managed Security Services", "201-1000", "US"),
+    "presidio.com":          ("Managed Security Services", "201-1000", "US"),
+    "arcticwolf.com":        ("Managed Security Services", "1001+", "US"),
+    "secureworks.com":       ("Managed Security Services", "1001+", "US"),
+    "crowdstrike.com":       ("Cybersecurity", "1001+", "US"),
+    "paloaltonetworks.com":  ("Cybersecurity", "1001+", "US"),
+    # FFRDCs
+    "noblis.org":            ("System Integration / Federal IT", "201-1000", "US"),
+    "mitre.org":             ("System Integration / Federal IT", "1001+", "US"),
+    # GSA distributors
+    "carahsoft.com":         ("Technology", "201-1000", "US"),
+    "cdwg.com":              ("Technology", "1001+", "US"),
+    "immersionnet.com":      ("Technology", "51-200", "US"),
+    "unisonind.com":         ("Technology", "51-200", "US"),
+    "fourinc.com":           ("Technology", "51-200", "US"),
+}
+
+
+def _lookup_domain_intel(domain: str) -> tuple[str | None, str | None, str | None]:
+    """Falls back to known domain intelligence when OSINT APIs return nothing."""
+    if domain in _DOMAIN_INTEL:
+        return _DOMAIN_INTEL[domain]
+    for suffix, intel in _DOMAIN_INTEL.items():
+        if suffix.startswith(".") and domain.endswith(suffix):
+            return intel
+    return None, None, None
+
+
 def _fetch_clearbit(domain: str) -> dict[str, Any]:
     """Calls Clearbit Company API. Returns {} if key unset or call fails."""
     if not _CLEARBIT_KEY or not domain:
@@ -117,6 +168,16 @@ def _enrich_one(contact: dict) -> dict | None:
     if not company_name and hunter:
         company_name = hunter.get("company") or ""
 
+    # Domain-based fallback for .gov/.mil and known primes/MSSPs
+    if not industry or not employee_range:
+        fb_industry, fb_range, fb_country = _lookup_domain_intel(domain)
+        if not industry and fb_industry:
+            industry = fb_industry
+        if not employee_range and fb_range:
+            employee_range = fb_range
+        if not hq_country and fb_country:
+            hq_country = fb_country
+
     seniority    = infer_seniority(job_title)
     job_function = infer_job_function(job_title)
 
@@ -137,6 +198,9 @@ def _enrich_one(contact: dict) -> dict | None:
     )
 
     sources = [name for name, data in [("clearbit", clearbit), ("hunter", hunter)] if data]
+    fb_used = _lookup_domain_intel(domain)[0] is not None and not clearbit
+    if fb_used:
+        sources.append("domain-intel")
 
     return {
         "hs_contact_id":      hs_id,
