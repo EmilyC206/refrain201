@@ -1,61 +1,57 @@
 email,firstname,lastname,jobtitle,company,tier_reason
-cti.programs@cisa.dhs.gov,Director,CTI Programs,Director of CTI Programs,CISA (DHS),Segment A — SAM.gov digital surveillance & CTI enterprise services
-cyber.intel@fincen.gov,Chief,Cyber Intel,Chief Cyber Intelligence Officer,FinCEN (Treasury),Segment A — global threat-intel data subscription
-cyber.division@fbi.gov,Section,Chief,Section Chief Cyber Division,FBI Cyber Division,Segment A — dark-web & digital surveillance subscriptions
-financial.crimes@usss.dhs.gov,Special Agent,In Charge,Special Agent in Charge Financial Crimes,USSS Financial Crimes,Segment A — dark-web monitoring and fraud prevention
-ciso@frtib.gov,CISO,Federal Retirement,CISO,Federal Retirement Thrift Investment Board,Segment A — brand monitoring & enforcement (TSP)
-ciso@opm.gov,CISO,OPM,CISO,Office of Personnel Management,Segment A — identity exposure and credential leak detection
-deputy.ciso@ssa.gov,Deputy,CISO,Deputy CISO,Social Security Administration,Segment A — citizen data leak and brand impersonation
-threat.intel@va.gov,Director,Threat Intel,Director of Threat Intelligence,VA OCISO,Segment A — credential/identity exposure and veteran PII
-ciso@cms.hhs.gov,CISO,HHS,CISO,HHS / CMS,Segment A — citizen health data exposure and brand abuse
-cyber.threat@state.gov,Director,Cyber Threat,Director of Cyber Threat Intelligence,State Department,Segment A — dark-web monitoring and foreign threat actors
-j2.intel@cybercom.mil,Intelligence,Director,Intelligence Director,DoD CYBERCOM J2,Segment A — enterprise CTI/TIES platform
-threat.intel.pm@dia.mil,Program,Manager,Program Manager Threat Intelligence,DIA,Segment A — dark-web and OSINT subscriptions
-tech.director@nsa.gov,Technical,Director,Technical Director NSA-CISA Liaison,NSA CISA Liaison,Segment A — CTI enterprise platform
-cyber.ciso@bah.com,CISO,Booz Allen,CISO Cyber Division,Booz Allen Hamilton,Segment B — prime with federal cyber contracts
-cyber.cto@bah.com,CTO,Booz Allen,CTO Cyber Solutions,Booz Allen Hamilton,Segment B — prime with federal cyber contracts
-cyber.director@saic.com,Director,Cyber,Director Cyber & Intelligence,SAIC,Segment B — prime Cyber & Intelligence division
-cyber.vp@leidos.com,VP,Cyber,VP Cyber & Analytics Group,Leidos,Segment B — prime Cyber & Analytics Group
-intel.director@caci.com,Director,Intelligence,Director Intelligence & Cyber Solutions,CACI International,Segment B — prime Intelligence & Cyber
-cyber.lead@mantech.com,VP,Cyber Solutions,VP Cyber Solutions,ManTech International,Segment B — prime Cyber Solutions
-advanced.solutions@peraton.com,Director,Advanced Solutions,Director Advanced Cyber Solutions,Peraton,Segment B — prime Advanced Solutions
-cyber.director@parsons.com,Director,Federal Cyber,Director Federal Cybersecurity,Parsons Corporation,Segment B — prime Federal Cyber
-cyber.vp@gdit.com,VP,Cyber Intelligence,VP Cyber & Intelligence,General Dynamics IT (GDIT),Segment B — prime Cyber & Intelligence
-cyber.director@accenturefederal.com,Director,Cyber,Director Cybersecurity,Accenture Federal Services,Segment B — prime Cyber practice
-cyber.risk@deloitte.com,Director,Cyber Risk,Director Cyber Risk Government,Deloitte Government & Public Services,Segment B — prime Cyber Risk
-cyber.sales@bah.com,VP,Federal Sales,VP Federal Cyber Sales,Booz Allen Hamilton,Segment B — prime sales motion
-cyber.bd@saic.com,Director,Business Development,Director Cyber Business Development,SAIC,Segment B — prime business development
-cyber.marketing@leidos.com,Director,Marketing,Director Cyber Marketing,Leidos,Segment B — prime marketing
-intel.bd@caci.com,VP,Business Development,VP Intelligence Business Development,CACI International,Segment B — prime business development
-cyber.pm@mantech.com,Program,Manager,Program Manager Cyber Operations,ManTech International,Segment B — prime program management
-solutions.director@peraton.com,Director,Solutions,Director Cyber Solutions Architecture,Peraton,Segment B — prime solutions architecture
-federal.practice@optiv.com,VP,Federal Practice,VP Federal Security Practice,Optiv,Segment C — MSSP federal SOC/CTI services
-federal.security@guidepoint.com,Director,Federal,Director Federal Security Practice,GuidePoint Security,Segment C — MSSP federal practice
-federal.director@coalfire.com,Director,Federal,Director Coalfire Federal,Coalfire Federal,Segment C — MSSP federal compliance and security
-ciso@telos.com,CISO,Telos,CISO,Telos Corporation,Segment C — MSSP federal security solutions
-federal.vp@presidio.com,VP,Federal,VP Presidio Federal,Presidio Federal,Segment C — MSSP federal practice
-cyber.research@noblis.org,Director,Cyber Research,Director Cyber & Threat Intel Programs,Noblis,Segment C — FFRDC influencing federal buys
-cti.programs@mitre.org,Lead,CTI Programs,Lead Cyber Threat Intelligence Programs,MITRE,Segment C — FFRDC CTI programs
-federal.soc@optiv.com,Director,SOC Services,Director Federal SOC Services,Optiv,Segment C — MSSP SOC operations
-threat.services@guidepoint.com,Manager,Threat Services,Manager Threat Intelligence Services,GuidePoint Security,Segment C — MSSP threat services
-security.ops@telos.com,Director,Security Ops,Director Security Operations,Telos Corporation,Segment C — MSSP security operations
-federal.solutions@coalfire.com,VP,Solutions,VP Federal Solutions,Coalfire Federal,Segment C — MSSP federal solutions
-cyber.director@presidio.com,Director,Cyber,Director Cyber Solutions,Presidio Federal,Segment C — MSSP cyber solutions
-research.lead@noblis.org,Lead,Research,Lead Cybersecurity Research,Noblis,Segment C — FFRDC cybersecurity research
-threat.programs@mitre.org,Program,Manager,Program Manager Threat Analysis,MITRE,Segment C — FFRDC threat analysis
-cyber.practice@carahsoft.com,VP,Cyber Practice,VP Cybersecurity Practice,Carahsoft Technology,Segment D — GSA distributor cybersecurity practice
-cyber.solutions@cdwg.com,Director,Cyber Solutions,Director Cyber Solutions,CDW Government (CDW-G),Segment D — distributor cyber solutions
-federal.cyber@immersionnet.com,Director,Federal Cyber,Director Federal Cyber Solutions,Immersion Networks,Segment D — distributor federal cyber
-federal.advisory@unisonind.com,Director,Advisory,Director Federal Advisory,Unison,Segment D — distributor federal advisory
-vendor.alliances@carahsoft.com,Director,Vendor Alliances,Director Vendor Alliances Cyber,Carahsoft Technology,Segment D — GSA distributor vendor alliances
-gov.sales@cdwg.com,VP,Government Sales,VP Government Cyber Sales,CDW Government (CDW-G),Segment D — distributor government sales
-solutions.eng@carahsoft.com,Manager,Solutions Engineering,Manager Cybersecurity Solutions Engineering,Carahsoft Technology,Segment D — GSA distributor solutions engineering
-channel.director@cdwg.com,Director,Channel,Director Federal Channel Development,CDW Government (CDW-G),Segment D — distributor channel development
-dhs.account@bah.com,Director,DHS Account,Director DHS Account Cybersecurity,Booz Allen Hamilton,Segment B — prime DHS account team
-dod.cyber@leidos.com,VP,DoD Cyber,VP DoD Cybersecurity Programs,Leidos,Segment B — prime DoD cyber programs
-intel.solutions@gdit.com,Director,Intel Solutions,Director Intelligence Solutions,General Dynamics IT (GDIT),Segment B — prime intelligence solutions
-fed.cyber@accenturefederal.com,VP,Federal Cyber,VP Federal Cybersecurity,Accenture Federal Services,Segment B — prime federal cyber VP
-govcloud.security@deloitte.com,Director,GovCloud Security,Director Government Cloud Security,Deloitte Government & Public Services,Segment B — prime gov cloud security
-threat.ops@dia.mil,Director,Threat Ops,Director Threat Operations,DIA,Segment A — threat operations and OSINT
-cyber.programs@dhs.gov,Program,Manager,Program Manager Cyber Programs,DHS Cybersecurity Division,Segment A — DHS cyber program management
-identity.protection@opm.gov,Director,Identity Protection,Director Identity Protection Programs,Office of Personnel Management,Segment A — identity exposure programs
+ciso@frtib.gov,CISO,FRTIB,CISO,Federal Retirement Thrift Investment Board,Tier 1A — active brand monitoring solicitation FRTIB1-25-Q-0003
+deputy.ciso@ssa.gov,Deputy,CISO,Deputy CISO,Social Security Administration,Tier 1A — 70M+ beneficiary PII exposure
+ciso@irs.gov,CISO,IRS,CISO,Internal Revenue Service,Tier 1A — dark web markets for stolen tax credentials
+ciso@va.gov,Director,Threat Intel,Director of Threat Intelligence,VA OCISO,Tier 1A — 9M veteran beneficiaries credential/identity exposure
+ciso@opm.gov,CISO,OPM,CISO,Office of Personnel Management,Tier 1A — historical breach victim and federal workforce credential monitoring
+ciso@cms.hhs.gov,CISO,CMS,CISO,Centers for Medicare and Medicaid Services,Tier 1A — 60M+ beneficiaries on Healthcare.gov
+ciso@ed.gov,CISO,Education,CISO,Department of Education,Tier 1A — FAFSA/student loan fraud and brand impersonation
+cyber.occip@treasury.gov,Director,OCCIP,Director Cybersecurity and Critical Infrastructure Protection,Treasury OCCIP,Tier 1B — sources sought for global threat intel data subscription
+cyber.intel@fincen.gov,Chief,Cyber Intel,Chief Cyber Intelligence Officer,FinCEN (Treasury),Tier 1B — awarded AnChain.AI $814K dark web/crypto SaaS
+cti.programs@cisa.dhs.gov,Director,CTI Programs,Director of CTI Programs,CISA,Tier 1B — operates Shared Cybersecurity Services program
+ocso.director@dhs.gov,Director,OCSO,Director Dark Web Analysis,DHS Office of the Chief Security Officer,Tier 1B — awarded Tangles SaaS open/dark web analysis
+cyber.sec@sec.gov,Director,Cyber,Director Cybersecurity and Market Intelligence,SEC,Tier 1B — monitors insider trading via credential leaks
+hsi.cyber@ice.dhs.gov,Director,Cyber Crimes,Director HSI Cyber Crimes Center,DHS ICE Homeland Security Investigations,Tier 1C — CACI holds $12M dark web operations contract
+cyber.division@fbi.gov,Section,Chief,Section Chief Cyber Division,FBI Cyber Division,Tier 1C — DOJ OIG flagged dark web tool fragmentation
+diversion.cyber@dea.gov,Director,Diversion,Director Cyber Intelligence Diversion Control,DEA Diversion Control Division,Tier 1C — dark web drug marketplace monitoring
+financial.crimes@usss.dhs.gov,Special Agent,In Charge,Special Agent in Charge Financial Crimes,U.S. Secret Service,Tier 1C — financial crimes and credential theft investigations
+oci.surveillance@fda.hhs.gov,Director,Digital Surveillance,Director Digital Surveillance,FDA Office of Criminal Investigations,Tier 1C — active solicitation 75F40125Q00448 digital surveillance
+uspis.darknet@usps.gov,Inspector,In Charge,Inspector in Charge Darknet Operations,U.S. Postal Inspection Service,Tier 1C — Operation DisrupTor participant
+cyber.darkweb@oig.hhs.gov,Lead,Cyber Assessment,Lead Cyber Dark Web Assessment,HHS OIG Cyber Assessment Team,Tier 1C — solicitation RFQ1488564 cyber dark web tool
+darknet.taskforce@doj.gov,Director,Taskforce,Director Darknet Marketplace Task Force,DOJ Darknet and Digital Currency Crimes Task Force,Tier 1C — formalized 2023 multi-agency coordination
+j2.intel@cybercom.mil,Intelligence,Director,Intelligence Director,U.S. Cyber Command,Tier 1D — awarded Recorded Future threat intel contract
+sbir.cyber@afrl.af.mil,Program,Manager,Program Manager Cyber SBIR,Air Force Research Laboratory,Tier 1D — awarded SpyCloud SBIR Phase I $74.9K dark web tool
+cyber.licenses@disa.mil,Director,Cyber Tools,Director Cyber Tools and Licensing,DISA,Tier 1D — renewed Dataminr 30-seat license
+cyber.director@arcyber.army.mil,Director,External Threats,Director External Threat Exposure,Army Cyber Command,Tier 1D — personnel doxxing protection and network monitoring
+cti.feeds@nsa.gov,Technical,Director,Technical Director CTI Integration,NSA Cybersecurity Directorate,Tier 1D — commercial dark web data augments classified collection
+cyber.ciso@bah.com,CISO,Booz Allen,CISO Cyber Division,Booz Allen Hamilton,Tier 2 — #1 federal cyber prime $2.5-2.8B cyber revenue
+cyber.vp@bah.com,VP,Cyber Managed Services,VP Cyber Managed Services,Booz Allen Hamilton,Tier 2 — 8000+ cyber professionals 300+ projects
+cyber.vp@leidos.com,VP,Cyber,VP Cyber & Analytics Group,Leidos,Tier 2 — $120M Navy cybersecurity contract
+intel.director@caci.com,Director,Intelligence,Director Intelligence & Cyber Solutions,CACI International,Tier 2 — holds $12M DHS ICE dark web contract on Alliant 2
+cyber.vp@gdit.com,VP,Cyber Intelligence,VP Cyber & Intelligence,General Dynamics IT (GDIT),Tier 2 — $285M Virginia cybersecurity contract
+cyber.director@accenturefederal.com,Director,Cyber,Director Cybersecurity,Accenture Federal Services,Tier 2 — $789M Navy SHARKCAGE partnered with Google/Mandiant
+cyber.director@saic.com,Director,Cyber,Director Cyber & Intelligence,SAIC,Tier 2 — large federal IT/cyber portfolio across DoD and civilian
+cyber.lead@mantech.com,VP,Cyber Solutions,VP Cyber Solutions,ManTech International,Tier 2 — strong IC and DoD cyber portfolio
+advanced.solutions@peraton.com,Director,Advanced Solutions,Director Advanced Cyber Solutions,Peraton,Tier 2 — inherited IC cyber programs needs commercial dark web data
+cyber.modernization@cgifederal.com,Director,Cyber,Director Cybersecurity Modernization,CGI Federal,Tier 2 — civilian agency IT modernization IRS/VA/CMS
+cyber.sales@bah.com,VP,Federal Sales,VP Federal Cyber Sales,Booz Allen Hamilton,Tier 2 — prime BD embed Flare in proposals
+cyber.bd@leidos.com,Director,Business Development,Director Cyber Business Development,Leidos,Tier 2 — prime BD for cyber task orders
+partner.alliances@caci.com,VP,Alliances,VP Technology Alliances,CACI International,Tier 2 — teaming partner for DHS ICE dark web operations
+federal.practice@optiv.com,VP,Federal Practice,VP Federal Security Practice,Optiv + ClearShark,Tier 3 — holds NASA SEWP V Army ITES-SW2 Army ADMC-3 GSA Schedule
+gov.solutions@arcticwolf.com,Director,Government Solutions,Director Government Security Solutions,Arctic Wolf,Tier 3 — cloud MDR with government dark web scanning
+federal.integrations@secureworks.com,Director,Federal,Director Federal Detection & Response,Secureworks (Dell),Tier 3 — Taegis platform with federal customer base
+gov.partnerships@crowdstrike.com,VP,Government Partnerships,VP Government Technology Partnerships,CrowdStrike,Tier 3 — Falcon platform federal contracts endpoint + external TI
+federal.integrations@paloaltonetworks.com,Director,Federal Integrations,Director Federal XSOAR Integrations,Palo Alto Networks / Unit 42,Tier 3 — Cortex XSOAR integration for federal SOC deployments
+darknet.products@fourinc.com,Director,Darknet Products,Director Darknet Intelligence Products,Four Inc.,Tier 3 — partners with DarkOwl on SEWP V and ITES-SW2
+cyber.practice@carahsoft.com,VP,Cyber Practice,VP Cybersecurity Practice,Carahsoft Technology,Tier 3/4 — largest gov IT distributor master aggregator for contract vehicles
+federal.security@guidepoint.com,Director,Federal,Director Federal Security Practice,GuidePoint Security,Tier 3 — MSSP federal practice SOC/CTI services
+federal.director@coalfire.com,Director,Federal,Director Coalfire Federal,Coalfire Federal,Tier 3 — MSSP federal compliance and security
+ciso@telos.com,CISO,Telos,CISO,Telos Corporation,Tier 3 — MSSP federal security solutions
+federal.vp@presidio.com,VP,Federal,VP Presidio Federal,Presidio Federal,Tier 3 — MSSP federal practice
+cyber.research@noblis.org,Director,Cyber Research,Director Cyber & Threat Intel Programs,Noblis,Tier 3 — FFRDC influences federal buys
+cti.programs@mitre.org,Lead,CTI Programs,Lead Cyber Threat Intelligence Programs,MITRE,Tier 3 — FFRDC CTI programs
+cyber.solutions@cdwg.com,Director,Cyber Solutions,Director Cyber Solutions,CDW Government (CDW-G),Tier 3/4 — distributor cyber solutions federal channel
+federal.cyber@immersionnet.com,Director,Federal Cyber,Director Federal Cyber Solutions,Immersion Networks,Tier 4 — distributor federal cyber
+federal.advisory@unisonind.com,Director,Advisory,Director Federal Advisory,Unison,Tier 4 — distributor federal advisory
+vendor.alliances@carahsoft.com,Director,Vendor Alliances,Director Vendor Alliances Cyber,Carahsoft Technology,Tier 4 — GSA vehicle listing and distribution
+gov.sales@cdwg.com,VP,Government Sales,VP Government Cyber Sales,CDW Government (CDW-G),Tier 4 — federal distribution channel
