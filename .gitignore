@@ -1,0 +1,14 @@
+# Never commit real secrets
+.env
+
+# Runtime data
+data/
+*.sqlite
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+dist/
+build/
