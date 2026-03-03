@@ -2,17 +2,17 @@ from __future__ import annotations
 
 # ──────────────────────────────────────────────────────────────────────────────
 # ICP Industry Fit weights (max 40 pts)
-# Tuned for a B2B SaaS ICP selling to tech-adjacent companies.
-# Adjust to match YOUR target market before going live.
+# Tuned for Flare's federal cybersecurity / dark-web intelligence ICP.
 # ──────────────────────────────────────────────────────────────────────────────
 ICP_INDUSTRIES: dict[str, int] = {
-    "SaaS": 40,
-    "Software": 35,
-    "Technology": 30,
-    "Financial Services": 25,
-    "Healthcare": 20,
-    "E-Commerce": 15,
-    "Other": 5,
+    "Federal Government / Defense": 40,
+    "Law Enforcement": 40,
+    "Cybersecurity": 38,
+    "Managed Security Services": 35,
+    "System Integration / Federal IT": 30,
+    "Financial Services": 22,
+    "Technology": 15,
+    "Other": 3,
 }
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -28,33 +28,35 @@ SENIORITY_WEIGHTS: dict[str, int] = {
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Job function weights (max 20 pts)
-# Ranked by closed-deal frequency for B2B SaaS.
+# Ranked by Flare's federal champion personas: security and threat-intel
+# buyers, then IT/eng who integrate, then ops/procurement who purchase.
 # ──────────────────────────────────────────────────────────────────────────────
 FUNCTION_WEIGHTS: dict[str, int] = {
-    "Marketing": 20,
-    "Sales": 18,
+    "Security": 20,
+    "Threat Intelligence": 20,
+    "IT / Engineering": 18,
     "Operations": 15,
-    "Finance": 12,
-    "Product": 10,
-    "Engineering": 8,
+    "Procurement / Contracting": 12,
+    "Marketing": 10,
+    "Sales": 10,
     "Other": 3,
 }
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Company size weights (max 15 pts)
-# Optimised for mid-market (51–1000) as primary ICP.
+# Reoriented toward enterprise-scale federal buyers and large primes.
 # ──────────────────────────────────────────────────────────────────────────────
 SIZE_WEIGHTS: dict[str, int] = {
-    "201-1000": 15,
-    "51-200": 12,
-    "1001+": 10,
-    "11-50": 6,
-    "1-10": 2,
-    "Unknown": 2,   # fallback when employee_range is not available
+    "1001+": 15,
+    "201-1000": 13,
+    "51-200": 8,
+    "11-50": 4,
+    "1-10": 1,
+    "Unknown": 1,
 }
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Tier thresholds — lower Hot threshold if >15% of leads land there.
+# Tier thresholds
 # ──────────────────────────────────────────────────────────────────────────────
 TIER_THRESHOLDS: dict[str, int] = {
     "Hot": 75,
@@ -63,10 +65,10 @@ TIER_THRESHOLDS: dict[str, int] = {
 }
 
 SIZE_DESCRIPTIONS: dict[str, str] = {
-    "1-10": "early-stage",
-    "11-50": "seed-stage",
+    "1-10": "boutique",
+    "11-50": "emerging",
     "51-200": "growth-stage",
-    "201-1000": "mid-market",
+    "201-1000": "mid-tier",
     "1001+": "enterprise",
 }
 
@@ -76,52 +78,73 @@ SIZE_DESCRIPTIONS: dict[str, str] = {
 # DO NOT rename these variables — build_personalization_hook() uses .format()
 # ──────────────────────────────────────────────────────────────────────────────
 HOOK_TEMPLATES: dict[tuple[str, str], str] = {
-    ("Marketing", "VP"):        "Revenue-focused marketing leaders at {company} are cutting CAC 30% with us.",
-    ("Marketing", "Director"):  "Helping {company} scale demand gen without growing headcount.",
-    ("Marketing", "CXO"):       "CMOs at {size_desc} companies like {company} are unifying pipeline attribution.",
-    ("Marketing", "Manager"):   "Marketing managers at {industry} companies are automating lead scoring in days.",
-    ("Marketing", "IC"):        "How {company}'s marketing team could automate their lead enrichment pipeline.",
-    ("Sales", "VP"):            "VP Sales at {size_desc} {industry} companies compressing ramp time by 40%.",
-    ("Sales", "CXO"):           "CROs at {industry} companies are using us to fix the forecast accuracy problem.",
-    ("Sales", "Director"):      "Sales directors at {size_desc} companies are closing 2x faster with enriched data.",
-    ("Sales", "Manager"):       "Sales managers at {company} are using enrichment to prioritize their pipeline.",
-    ("Sales", "IC"):            "How reps at {industry} companies are hitting quota without more cold calls.",
-    ("Operations", "CXO"):      "COOs at {size_desc} {industry} companies saving 15 hrs/week on manual ops work.",
-    ("Operations", "VP"):       "VP Ops teams at {company} are eliminating data silos between CRM and outreach.",
-    ("Operations", "Director"): "RevOps directors at {industry} companies reducing tool sprawl by 60%.",
-    ("Operations", "Manager"):  "Ops managers at {size_desc} companies automating contact enrichment end-to-end.",
-    ("Engineering", "CXO"):     "CTOs at {size_desc} {industry} startups saving 10 hrs/week on ops overhead.",
-    ("Engineering", "VP"):      "Engineering VPs at {company} cutting integration maintenance by 50%.",
-    ("Engineering", "Director"):"Engineering directors at {industry} companies shipping faster with cleaner data.",
-    ("Finance", "CXO"):         "CFOs at {size_desc} {industry} companies tying pipeline to revenue in real time.",
-    ("Finance", "VP"):          "VP Finance teams at {company} getting ROI clarity on every outreach dollar.",
-    ("Product", "CXO"):         "CPOs at {industry} companies building with richer customer signal from day one.",
-    ("Product", "VP"):          "VP Product at {size_desc} companies reducing churn through better ICP targeting.",
+    # Security
+    ("Security", "CXO"):       "CISOs at {company} are using Flare to surface credential leaks and dark-web threats before adversaries act.",
+    ("Security", "VP"):        "VP Security teams at {size_desc} {industry} organizations are cutting threat triage time 60% with Flare.",
+    ("Security", "Director"):  "Security directors at {company} are replacing manual dark-web monitoring with continuous automated detection.",
+    ("Security", "Manager"):   "Security managers at {industry} agencies are getting analyst-ready dark-web alerts — no more noise.",
+    ("Security", "IC"):        "How analysts at {company} are getting actionable dark-web intelligence without extra headcount.",
+    # Threat Intelligence
+    ("Threat Intelligence", "CXO"):       "CTI leaders at {company} are force-multiplying their analysts with Flare's automated dark-web collection.",
+    ("Threat Intelligence", "VP"):        "VP Threat Intel at {size_desc} {industry} organizations are eliminating blind spots across paste sites, forums, and marketplaces.",
+    ("Threat Intelligence", "Director"):  "Threat intel directors at {company} are detecting credential exposures and brand abuse in hours, not weeks.",
+    ("Threat Intelligence", "Manager"):   "CTI managers at {industry} agencies are automating the collection their team used to do manually.",
+    ("Threat Intelligence", "IC"):        "How threat analysts at {company} are spending less time collecting and more time hunting.",
+    # IT / Engineering
+    ("IT / Engineering", "CXO"):       "CTOs at {size_desc} {industry} organizations are integrating Flare's dark-web feed directly into their SIEM/SOAR stack.",
+    ("IT / Engineering", "VP"):        "VP Engineering at {company} are closing the gap between external threat data and internal detection logic.",
+    ("IT / Engineering", "Director"):  "IT directors at {industry} agencies are deploying Flare's API to enrich alerts with dark-web context automatically.",
+    ("IT / Engineering", "Manager"):   "Engineering leads at {company} are integrating Flare in days — not months — with pre-built connectors.",
+    # Operations
+    ("Operations", "CXO"):       "COOs at {size_desc} {industry} organizations are reducing manual threat-monitoring overhead by 70% with Flare.",
+    ("Operations", "VP"):        "VP Ops teams at {company} are unifying dark-web, brand-monitoring, and credential-leak workflows in one platform.",
+    ("Operations", "Director"):  "Operations directors at {industry} agencies are automating the threat-intel pipeline end to end.",
+    ("Operations", "Manager"):   "Ops managers at {company} are eliminating spreadsheet-based threat tracking with Flare's continuous monitoring.",
+    # Procurement / Contracting
+    ("Procurement / Contracting", "CXO"):       "Procurement executives at {company} are streamlining dark-web intelligence acquisition through existing vehicles.",
+    ("Procurement / Contracting", "VP"):        "VP Contracting at {size_desc} {industry} organizations are adding Flare to BPAs and IDIQs for immediate analyst access.",
+    ("Procurement / Contracting", "Director"):  "Contracting directors at {company} are enabling threat-intel teams with Flare via GSA Schedule or micro-purchase.",
+    ("Procurement / Contracting", "Manager"):   "Contracting officers at {industry} agencies are evaluating Flare's dark-web platform for existing cyber task orders.",
+    # Marketing / Sales (for primes and channel partners)
+    ("Marketing", "VP"):        "Marketing leaders at {company} are positioning Flare's dark-web intelligence as a key differentiator in federal proposals.",
+    ("Marketing", "Director"):  "Marketing directors at {size_desc} {industry} primes are using Flare to strengthen their cyber recompete narratives.",
+    ("Marketing", "Manager"):   "Marketing managers at {company} are building Flare-powered case studies that win federal cyber deals.",
+    ("Sales", "VP"):            "VP Sales at {size_desc} {industry} primes are embedding Flare into proposals to win cyber task orders.",
+    ("Sales", "CXO"):           "CROs at {industry} integrators are using Flare as a subcontract differentiator on federal cyber recompetes.",
+    ("Sales", "Director"):      "Sales directors at {company} are closing federal cyber deals faster by teaming with Flare.",
+    ("Sales", "Manager"):       "Account managers at {industry} primes are adding Flare's dark-web monitoring to existing SOC contracts.",
 }
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Keyword maps for title inference
 # ──────────────────────────────────────────────────────────────────────────────
 _SENIORITY_KEYWORDS: dict[str, list[str]] = {
-    "CXO":      ["ceo", "cto", "cmo", "cro", "coo", "cfo", "chief", "founder", "co-founder", "president"],
+    "CXO":      [" ceo", " cto ", " cmo", " cro", " coo", " cfo", " ciso",
+                 "chief information", "chief technology", "chief security",
+                 "chief marketing", "chief revenue", "chief operating",
+                 "chief financial", "chief executive", "chief data", "chief digital",
+                 "founder", "co-founder", "president"],
     "VP":       ["vp ", "vice president", "vice-president"],
-    "Director": ["director", "head of", "head,"],
-    "Manager":  ["manager", "lead ", "principal", "staff "],
+    "Director": ["director", "head of", "head,", "section chief", "branch chief",
+                 "division chief", "special agent in charge", "intelligence director"],
+    "Manager":  ["manager", "lead ", "principal", "staff ", "program manager",
+                 "contracting officer"],
 }
 
 _FUNCTION_KEYWORDS: dict[str, list[str]] = {
-    "Marketing":   ["marketing", "demand gen", "demand generation", "growth", "brand", "content", "seo", "campaigns"],
-    "Sales":       ["sales", "account executive", " ae ", "sdr", "bdr", "business development", "revenue"],
-    "Engineering": ["engineer", "developer", "software", "data", "ml ", "ai ", "architect", "devops", "sre"],
-    "Finance":     ["finance", "financial", "accounting", "controller", "treasury", "fp&a"],
-    "Operations":  ["operations", " ops", "revops", "revenue operations", "enablement", "strategy"],
-    "Product":     ["product", " ux", " ui", "design", "research", " pm ", "program manager"],
+    "Procurement / Contracting": ["procurement", "contracting officer", "contracting", "acquisition", "purchasing"],
+    "Security":                ["security", "ciso", "infosec", "information security", "cybersecurity", "cyber security", " cyber ", "cyber ", "soc "],
+    "Threat Intelligence":     ["threat intel", "threat intelligence", " cti ", "dark web", "dark-web", "osint", "intelligence analyst", "cyber intel", "intelligence director"],
+    "IT / Engineering":        ["engineer", "developer", "software", "data", "ml ", "ai ", "architect", "devops", "sre", " it ", "information technology", "systems admin"],
+    "Operations":              ["operations", " ops", "revops", "revenue operations", "enablement", "strategy"],
+    "Marketing":               ["marketing", "demand gen", "demand generation", "growth", "brand", "content", "seo", "campaigns"],
+    "Sales":                   ["sales", "account executive", " ae ", "sdr", "bdr", "business development", "revenue"],
 }
 
 
 def infer_seniority(title: str) -> str:
     """Infers seniority tier from a raw job title string."""
-    t = (title or "").lower()
+    t = " " + (title or "").lower()
     for tier, keywords in _SENIORITY_KEYWORDS.items():
         if any(kw in t for kw in keywords):
             return tier
@@ -202,8 +225,8 @@ def build_personalization_hook(
         return "", {}
 
     variables = {
-        "company":   company_name or "your company",
+        "company":   company_name or "your agency",
         "size_desc": size_desc or "growing",
-        "industry":  industry or "B2B",
+        "industry":  industry or "federal",
     }
     return template.format(**variables), variables
