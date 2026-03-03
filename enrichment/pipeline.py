@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 from datetime import datetime
 from typing import Any
@@ -8,7 +9,7 @@ import httpx
 from dotenv import load_dotenv
 
 from db.schema import LeadRecord, ScoringHistory, Session
-from hubspot.sync import _check_cap, _increment_usage, batch_update_contacts, fetch_pending_contacts
+from hubspot.sync import _check_cap, _increment_usage, batch_update_companies, batch_update_contacts, fetch_pending_contacts
 from scoring.engine import SIZE_DESCRIPTIONS, build_personalization_hook, infer_job_function, infer_seniority, score_lead
 
 load_dotenv()
@@ -16,6 +17,15 @@ load_dotenv()
 _CLEARBIT_KEY = os.getenv("CLEARBIT_API_KEY", "")
 _HUNTER_KEY   = os.getenv("HUNTER_API_KEY", "")
 _HTTP_TIMEOUT = 15
+
+
+def _get_associated_company_id(contact: dict) -> str | None:
+    """Extracts the first associated company ID from a contact search result."""
+    assoc = contact.get("associations", {})
+    companies = assoc.get("companies", {}).get("results", [])
+    if companies:
+        return str(companies[0].get("id", ""))
+    return None
 
 
 def _extract_domain(email: str) -> str:
@@ -197,7 +207,8 @@ def run_pipeline() -> dict:
     contacts = fetch_pending_contacts()
     print(f"  Found {len(contacts)} contact(s) to process.")
 
-    hs_updates: list[dict] = []
+    hs_contact_updates: list[dict] = []
+    hs_company_updates: list[dict] = []
     stats = {"processed": 0, "complete": 0, "failed": 0, "skipped": 0}
 
     for contact in contacts:
@@ -219,7 +230,21 @@ def run_pipeline() -> dict:
                 _maybe_log_score_change(session, enriched, old_score, old_tier)
                 session.commit()
 
-            hs_updates.append({
+            payload_summary = json.dumps({
+                "company": enriched.get("company_name") or "",
+                "industry": enriched.get("industry") or "",
+                "employees": enriched.get("employee_range") or "",
+                "country": enriched.get("hq_country") or "",
+                "source": enriched.get("enrichment_source") or "none",
+                "scores": {
+                    "icp": enriched["score_icp_fit"],
+                    "seniority": enriched["score_seniority"],
+                    "function": enriched["score_function"],
+                    "size": enriched["score_company_size"],
+                },
+            }, separators=(",", ":"))
+
+            hs_contact_updates.append({
                 "id": hs_id,
                 "properties": {
                     "enrich_status":       "Complete",
@@ -228,9 +253,25 @@ def run_pipeline() -> dict:
                     "enrich_hook":         enriched["personalization_hook"],
                     "lead_total_score":    str(enriched["total_score"]),
                     "lead_score_tier":     enriched["score_tier"],
-                    "enrich_payload_json": str(enriched.get("tech_stack_json") or ""),
+                    "enrich_payload_json": payload_summary,
                 },
             })
+
+            company_id = _get_associated_company_id(contact)
+            if company_id:
+                co_props: dict[str, str] = {}
+                if enriched.get("industry"):
+                    co_props["co_icp_fit"] = enriched["industry"]
+                if enriched.get("employee_range"):
+                    co_props["co_employee_range"] = enriched["employee_range"]
+                if enriched.get("tech_stack_json"):
+                    co_props["co_tech_stack"] = str(enriched["tech_stack_json"])
+                if co_props:
+                    hs_company_updates.append({
+                        "id": company_id,
+                        "properties": co_props,
+                    })
+
             stats["complete"] += 1
             print(
                 f"  OK   {hs_id} | {enriched['email']} | "
@@ -265,8 +306,8 @@ def run_pipeline() -> dict:
         finally:
             stats["processed"] += 1
 
-    print(f"Writing {len(hs_updates)} update(s) to HubSpot…")
-    synced_ids = batch_update_contacts(hs_updates)
+    print(f"Writing {len(hs_contact_updates)} contact update(s) to HubSpot…")
+    synced_ids = batch_update_contacts(hs_contact_updates)
 
     # Promote only confirmed-synced contacts from hs_pending → Complete
     if synced_ids:
@@ -279,9 +320,18 @@ def run_pipeline() -> dict:
                     record.hs_synced_at = now
             session.commit()
 
-    unsynced = len(hs_updates) - len(synced_ids)
+    unsynced = len(hs_contact_updates) - len(synced_ids)
     if unsynced:
         print(f"  WARN {unsynced} contact(s) remain hs_pending — will retry on next run")
+
+    if hs_company_updates:
+        print(f"Writing {len(hs_company_updates)} company update(s) to HubSpot…")
+        co_synced = batch_update_companies(hs_company_updates)
+        co_failed = len(set(u["id"] for u in hs_company_updates)) - len(co_synced)
+        if co_failed:
+            print(f"  WARN {co_failed} company update(s) failed — will retry on next run")
+        else:
+            print(f"  OK   {len(co_synced)} company(ies) updated")
 
     stats["complete"] = len(synced_ids)
     print(f"Run complete: {stats}")
