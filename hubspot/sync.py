@@ -100,29 +100,44 @@ def fetch_pending_contacts(limit: int = 100) -> list[dict[str, Any]]:
     return r.json().get("results", [])
 
 
-def batch_update_contacts(updates: list[dict[str, Any]]) -> None:
+def batch_update_contacts(updates: list[dict[str, Any]]) -> list[str]:
     """
     Writes enrichment properties back to HubSpot in batches of BATCH_SIZE.
     Each batch = 1 API call.  Sleeps 0.1 s between batches for rate limiting.
 
     Each item in `updates` must be:
         {"id": "<hs_contact_id>", "properties": {"key": "value", ...}}
+
+    Returns the list of contact IDs that were successfully written.
+    Failed batches are logged and skipped — a single bad batch does not
+    abort subsequent ones, and callers can use the returned IDs to determine
+    which SQLite records to mark as fully synced.
     """
     if not updates:
-        return
+        return []
+
+    synced_ids: list[str] = []
 
     for i in range(0, len(updates), _BATCH_SIZE):
         chunk = updates[i : i + _BATCH_SIZE]
-        _check_cap("hubspot", cost=1)
-
-        r = httpx.post(
-            f"{_BASE}/crm/v3/objects/contacts/batch/update",
-            headers=_HEADERS,
-            json={"inputs": chunk},
-            timeout=30,
-        )
-        r.raise_for_status()
-        _increment_usage("hubspot", cost=1)
+        try:
+            _check_cap("hubspot", cost=1)
+            _increment_usage("hubspot", cost=1)
+            r = httpx.post(
+                f"{_BASE}/crm/v3/objects/contacts/batch/update",
+                headers=_HEADERS,
+                json={"inputs": chunk},
+                timeout=30,
+            )
+            r.raise_for_status()
+            synced_ids.extend(item["id"] for item in chunk)
+        except RuntimeError:
+            # Cap exceeded — stop immediately, don't attempt further batches
+            raise
+        except Exception as exc:
+            print(f"  WARN batch {i // _BATCH_SIZE + 1} failed ({len(chunk)} contacts): {exc}")
 
         # Respect HubSpot's 10 req/s burst limit
         time.sleep(0.1)
+
+    return synced_ids

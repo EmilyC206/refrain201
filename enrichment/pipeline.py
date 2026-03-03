@@ -27,6 +27,7 @@ def _fetch_clearbit(domain: str) -> dict[str, Any]:
     if not _CLEARBIT_KEY or not domain:
         return {}
     _check_cap("clearbit", cost=1)
+    _increment_usage("clearbit", cost=1)  # record before the call — a failed request still consumed a slot
     try:
         r = httpx.get(
             "https://company.clearbit.com/v1/companies/find",
@@ -34,7 +35,6 @@ def _fetch_clearbit(domain: str) -> dict[str, Any]:
             headers={"Authorization": f"Bearer {_CLEARBIT_KEY}"},
             timeout=_HTTP_TIMEOUT,
         )
-        _increment_usage("clearbit", cost=1)
         if r.status_code == 200:
             return r.json()
         return {}
@@ -47,13 +47,13 @@ def _fetch_hunter(email: str) -> dict[str, Any]:
     if not _HUNTER_KEY or not email:
         return {}
     _check_cap("hunter", cost=1)
+    _increment_usage("hunter", cost=1)  # record before the call — a failed request still consumed a slot
     try:
         r = httpx.get(
             "https://api.hunter.io/v2/email-verifier",
             params={"email": email, "api_key": _HUNTER_KEY},
             timeout=_HTTP_TIMEOUT,
         )
-        _increment_usage("hunter", cost=1)
         if r.status_code == 200:
             return r.json().get("data", {})
         return {}
@@ -209,8 +209,13 @@ def run_pipeline() -> dict:
                 stats["skipped"] += 1
                 continue
 
+            # Write to SQLite as "hs_pending" — not "Complete" until HubSpot
+            # confirms receipt. This prevents contacts getting stuck if the
+            # HubSpot write fails: they stay hs_pending in SQLite, and
+            # HubSpot still shows them as Pending, so the next run retries.
+            sqlite_data = {**enriched, "enrichment_status": "hs_pending"}
             with Session() as session:
-                old_score, old_tier = _upsert_lead(session, enriched)
+                old_score, old_tier = _upsert_lead(session, sqlite_data)
                 _maybe_log_score_change(session, enriched, old_score, old_tier)
                 session.commit()
 
@@ -261,6 +266,23 @@ def run_pipeline() -> dict:
             stats["processed"] += 1
 
     print(f"Writing {len(hs_updates)} update(s) to HubSpot…")
-    batch_update_contacts(hs_updates)
+    synced_ids = batch_update_contacts(hs_updates)
+
+    # Promote only confirmed-synced contacts from hs_pending → Complete
+    if synced_ids:
+        now = datetime.utcnow()
+        with Session() as session:
+            for hs_id in synced_ids:
+                record = session.get(LeadRecord, hs_id)
+                if record:
+                    record.enrichment_status = "Complete"
+                    record.hs_synced_at = now
+            session.commit()
+
+    unsynced = len(hs_updates) - len(synced_ids)
+    if unsynced:
+        print(f"  WARN {unsynced} contact(s) remain hs_pending — will retry on next run")
+
+    stats["complete"] = len(synced_ids)
     print(f"Run complete: {stats}")
     return stats

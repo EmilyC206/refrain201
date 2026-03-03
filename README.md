@@ -106,6 +106,17 @@ SQLite is the system of record for the pipeline. They stay in sync
 but never share a lock. If the pipeline crashes mid-run, no data is lost —
 HubSpot contacts still have `enrich_status = Pending` and will be retried.
 
+**Two-phase commit:** The pipeline writes enrichment to SQLite as `hs_pending`
+before touching HubSpot. Only after `batch_update_contacts` confirms a
+contact was written does SQLite promote it to `Complete` with `hs_synced_at`
+stamped. This means a partial or total HubSpot write failure leaves both
+sides in a consistent retryable state.
+
+**Quota tracking:** Every external API call consumes a quota slot in
+`api_usage_log` before the HTTP request is made — not after. This means
+failed requests (timeouts, network errors) still count against the daily cap,
+which accurately reflects what the provider's own rate limiter sees.
+
 ---
 
 ## 3. Project File Structure
@@ -165,11 +176,27 @@ There are **3 tables**. Understand all three before touching anything.
 | `score_tier` | String | Hot / Warm / Cool / Cold |
 | `personalization_hook` | Text | Computed one-line outreach sentence |
 | `hook_variables_json` | JSON | Inputs used to build the hook |
-| `enrichment_status` | String | Pending / Complete / Failed / Stale |
+| `enrichment_status` | String | `Pending` / `hs_pending` / `Complete` / `Failed` / `Stale` |
 | `enrichment_source` | String | Which APIs returned data |
 | `enrichment_error` | Text | Error message if status = Failed |
 | `enriched_at` | DateTime | Timestamp of last enrichment |
-| `hs_synced_at` | DateTime | Timestamp of last HubSpot write-back |
+| `hs_synced_at` | DateTime | Timestamp of last confirmed HubSpot write-back |
+
+**`enrichment_status` lifecycle:**
+```
+Pending → hs_pending → Complete
+               ↓
+             Failed
+```
+- `Pending` — not yet enriched (or reset for re-enrichment)
+- `hs_pending` — enriched and scored locally, HubSpot write not yet confirmed
+- `Complete` — enrichment confirmed written to HubSpot (`hs_synced_at` is set)
+- `Failed` — pipeline error; see `enrichment_error` for details
+- `Stale` — previously enriched but flagged for re-enrichment
+
+The `hs_pending` state is the two-phase commit guard: if the HubSpot batch
+write fails after SQLite is written, the contact stays `hs_pending` in SQLite
+and `Pending` in HubSpot — both sides agree it needs a retry on the next run.
 
 ### Table 2: `scoring_history`
 **Immutable. Never update rows here — only insert.**
@@ -427,6 +454,8 @@ Columns: `lead_total_score` (sort desc), `lead_score_tier`, `enrich_seniority`, 
 | `SQLite database is locked` | Two pipeline instances running | Kill all, run as single process |
 | All scores are 0 | Job title empty in HubSpot | Ensure `jobtitle` is populated before enrichment |
 | `enrich_hook` blank | Missing `(function, seniority)` pair | Add template to `HOOK_TEMPLATES` in `engine.py` |
+| Contacts stuck as `hs_pending` | HubSpot write kept failing | Check `WARN batch` lines in logs; verify token scopes and cap usage |
+| `WARN batch N failed` in logs | Transient HubSpot error on one batch | Pipeline continues with other batches; affected contacts retry next run |
 
 ---
 
