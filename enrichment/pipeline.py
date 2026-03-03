@@ -14,6 +14,132 @@ from scoring.engine import SIZE_DESCRIPTIONS, build_personalization_hook, infer_
 
 load_dotenv()
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Domain → industry override map.
+# Wikidata returns no usable industry label for .gov/.mil domains and many
+# federal contractor domains.  This map is checked before Wikidata so the ICP
+# score reflects the actual sector, not the "Other" fallback.
+# ──────────────────────────────────────────────────────────────────────────────
+_DOMAIN_INDUSTRY_OVERRIDES: dict[str, str] = {
+    # ── Federal civilian agencies ──────────────────────────────────────────
+    "tsp.gov":              "Federal Government",
+    "ssa.gov":              "Federal Government",
+    "va.gov":               "Federal Government",
+    "irs.gov":              "Federal Government",
+    "treasury.gov":         "Federal Government",
+    "opm.gov":              "Federal Government",
+    "dol.gov":              "Federal Government",
+    "cms.hhs.gov":          "Federal Government",
+    "hhs.gov":              "Federal Government",
+    "sba.gov":              "Federal Government",
+    "ed.gov":               "Federal Government",
+    "gsa.gov":              "Federal Government",
+    "state.gov":            "Federal Government",
+    "doi.gov":              "Federal Government",
+    "usda.gov":             "Federal Government",
+    "dot.gov":              "Federal Government",
+    "epa.gov":              "Federal Government",
+    # ── Financial regulators & sector guardians ────────────────────────────
+    "cisa.dhs.gov":         "Federal Government",
+    "dhs.gov":              "Federal Government",
+    "fincen.gov":           "Federal Government",
+    "sec.gov":              "Financial Regulation",
+    "occ.treas.gov":        "Financial Regulation",
+    "fdic.gov":             "Financial Regulation",
+    "federalreserve.gov":   "Financial Regulation",
+    "cfpb.gov":             "Financial Regulation",
+    "cftc.gov":             "Financial Regulation",
+    "ncua.gov":             "Financial Regulation",
+    # ── Law enforcement ────────────────────────────────────────────────────
+    "fbi.gov":              "Law Enforcement",
+    "dea.gov":              "Law Enforcement",
+    "atf.gov":              "Law Enforcement",
+    "secretservice.gov":    "Law Enforcement",
+    "ice.gov":              "Law Enforcement",
+    "justice.gov":          "Law Enforcement",
+    "usmarshals.gov":       "Law Enforcement",
+    "postalinspectors.uspis.gov": "Law Enforcement",
+    "uspis.gov":            "Law Enforcement",
+    "cbp.gov":              "Law Enforcement",
+    # ── Defense & intelligence ─────────────────────────────────────────────
+    "nsa.gov":              "Intelligence",
+    "cia.gov":              "Intelligence",
+    "dia.mil":              "Intelligence",
+    "disa.mil":             "Defense",
+    "cybercom.mil":         "Defense",
+    "dodcio.defense.gov":   "Defense",
+    "defense.gov":          "Defense",
+    "16af.af.mil":          "Defense",
+    "arcyber.army.mil":     "Defense",
+    "af.mil":               "Defense",
+    "army.mil":             "Defense",
+    "navy.mil":             "Defense",
+    "marines.mil":          "Defense",
+    "spaceforce.mil":       "Defense",
+    "socom.mil":            "Defense",
+    # ── Systems integrators / primes ──────────────────────────────────────
+    "boozallen.com":        "Systems Integration",
+    "saic.com":             "Systems Integration",
+    "leidos.com":           "Systems Integration",
+    "mitre.org":            "Systems Integration",
+    "mantech.com":          "Systems Integration",
+    "caci.com":             "Systems Integration",
+    "gdit.com":             "Systems Integration",
+    "peraton.com":          "Systems Integration",
+    "parsons.com":          "Systems Integration",
+    "unisongt.com":         "Systems Integration",
+    "northropgrumman.com":  "Defense",
+    "l3harris.com":         "Defense",
+    "raytheon.com":         "Defense",
+    "lm.com":               "Defense",
+    "lockheedmartin.com":   "Defense",
+    "bah.com":              "Systems Integration",
+    "accenturefederal.com": "Systems Integration",
+    "accenture.com":        "Systems Integration",
+    "deloitte.com":         "Systems Integration",
+    "ibm.com":              "Systems Integration",
+    "noblis.org":           "Systems Integration",
+    "immersionnet.com":     "Systems Integration",
+    # ── Federal MSSPs ──────────────────────────────────────────────────────
+    "mandiant.com":         "Managed Security",
+    "crowdstrike.com":      "Managed Security",
+    "paloaltonetworks.com": "Managed Security",
+    "secureworks.com":      "Managed Security",
+    "telos.com":            "Managed Security",
+    "arcticwolf.com":       "Managed Security",
+    "coalfire.com":         "Managed Security",
+    "optiv.com":            "Managed Security",
+    "silversky.com":        "Managed Security",
+    "guidepoint.com":       "Managed Security",
+    "presidio.com":         "Managed Security",
+    "cdwg.com":             "Systems Integration",
+    "carahsoft.com":        "Systems Integration",
+}
+
+# Employee-count overrides for domains where Wikidata returns nothing.
+# Values are raw employee counts; _map_employee_count() converts them.
+_DOMAIN_EMPLOYEE_OVERRIDES: dict[str, int] = {
+    # Federal agencies — treat as large enterprise
+    "tsp.gov": 500, "ssa.gov": 60000, "va.gov": 400000, "irs.gov": 80000,
+    "treasury.gov": 100000, "opm.gov": 5000, "dol.gov": 15000,
+    "cms.hhs.gov": 6000, "sba.gov": 3000, "ed.gov": 4000,
+    "cisa.dhs.gov": 3000, "dhs.gov": 240000, "fincen.gov": 350,
+    "sec.gov": 4500, "occ.treas.gov": 3500, "fdic.gov": 5800,
+    "federalreserve.gov": 20000, "cfpb.gov": 1700,
+    "fbi.gov": 35000, "dea.gov": 10000, "atf.gov": 5000,
+    "secretservice.gov": 6500, "ice.gov": 20000, "justice.gov": 115000,
+    "usmarshals.gov": 5400, "nsa.gov": 30000, "disa.mil": 8000,
+    "cybercom.mil": 2000, "dia.mil": 16500,
+    # Primes and MSSPs
+    "boozallen.com": 29000, "saic.com": 24000, "leidos.com": 47000,
+    "mitre.org": 10000, "mantech.com": 9000, "caci.com": 22000,
+    "gdit.com": 30000, "peraton.com": 14000, "northropgrumman.com": 95000,
+    "l3harris.com": 50000, "accenture.com": 700000, "deloitte.com": 330000,
+    "ibm.com": 280000, "mandiant.com": 2000, "crowdstrike.com": 8000,
+    "paloaltonetworks.com": 14000, "secureworks.com": 2500, "telos.com": 2000,
+    "arcticwolf.com": 2000, "coalfire.com": 1200, "optiv.com": 2000,
+}
+
 _HUNTER_KEY   = os.getenv("HUNTER_API_KEY", "")
 _WIKIDATA_ENDPOINT = os.getenv("WIKIDATA_ENDPOINT", "https://query.wikidata.org/sparql")
 _WIKIDATA_UA = os.getenv(
@@ -251,8 +377,16 @@ def _enrich_one(contact: dict) -> dict | None:
     wikidata = _fetch_wikidata(domain, company_hint=company_name)
     hunter   = _fetch_hunter(email)
 
-    industry       = wikidata.get("industry") or None
-    employee_cnt   = wikidata.get("employees")
+    # Domain overrides take precedence over Wikidata when available.
+    # Match on full domain first, then try stripping one subdomain level.
+    _domain_key = domain
+    if _domain_key not in _DOMAIN_INDUSTRY_OVERRIDES:
+        _parent = ".".join(domain.split(".")[-2:]) if domain.count(".") >= 2 else domain
+        _domain_key = _parent if _parent in _DOMAIN_INDUSTRY_OVERRIDES else domain
+
+    industry       = _DOMAIN_INDUSTRY_OVERRIDES.get(_domain_key) or wikidata.get("industry") or None
+    _emp_override  = _DOMAIN_EMPLOYEE_OVERRIDES.get(_domain_key)
+    employee_cnt   = _emp_override if _emp_override is not None else wikidata.get("employees")
     employee_range = _map_employee_count(employee_cnt) if isinstance(employee_cnt, int) else None
     hq_country     = wikidata.get("country") or None
     tech_stack     = None

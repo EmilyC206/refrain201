@@ -2,16 +2,20 @@ from __future__ import annotations
 
 # ──────────────────────────────────────────────────────────────────────────────
 # ICP Industry Fit weights (max 40 pts)
-# Tuned for a B2B SaaS ICP selling to tech-adjacent companies.
-# Adjust to match YOUR target market before going live.
+# Tuned for Flare.io's federal go-to-market: government agencies, defense,
+# law enforcement, and the systems integrators / MSSPs that serve them.
 # ──────────────────────────────────────────────────────────────────────────────
 ICP_INDUSTRIES: dict[str, int] = {
-    "SaaS": 40,
-    "Software": 35,
-    "Technology": 30,
-    "Financial Services": 25,
-    "Healthcare": 20,
-    "E-Commerce": 15,
+    "Federal Government": 40,
+    "Defense": 38,
+    "Law Enforcement": 36,
+    "Financial Regulation": 30,
+    "Systems Integration": 28,
+    "Managed Security": 25,
+    "Intelligence": 38,
+    "Cybersecurity": 32,
+    "Financial Services": 20,
+    "Healthcare": 12,
     "Other": 5,
 }
 
@@ -28,27 +32,29 @@ SENIORITY_WEIGHTS: dict[str, int] = {
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Job function weights (max 20 pts)
-# Ranked by closed-deal frequency for B2B SaaS.
+# Ranked by deal-close frequency for a cyber threat-intel platform.
+# Cybersecurity and IT buyers are the primary economic buyers; Procurement
+# controls the contract vehicle — both score at the top.
 # ──────────────────────────────────────────────────────────────────────────────
 FUNCTION_WEIGHTS: dict[str, int] = {
-    "Marketing": 20,
-    "Sales": 18,
+    "Cybersecurity": 20,
+    "IT": 18,
     "Operations": 15,
-    "Finance": 12,
-    "Product": 10,
-    "Engineering": 8,
+    "Procurement": 14,
+    "Engineering": 12,
+    "Finance": 8,
     "Other": 3,
 }
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Company size weights (max 15 pts)
-# Optimised for mid-market (51–1000) as primary ICP.
+# Federal agencies and large primes are 1001+; mid-tier MSSPs are 201-1000.
 # ──────────────────────────────────────────────────────────────────────────────
 SIZE_WEIGHTS: dict[str, int] = {
-    "201-1000": 15,
-    "51-200": 12,
-    "1001+": 10,
-    "11-50": 6,
+    "1001+": 15,
+    "201-1000": 12,
+    "51-200": 8,
+    "11-50": 4,
     "1-10": 2,
     "Unknown": 2,   # fallback when employee_range is not available
 }
@@ -76,46 +82,83 @@ SIZE_DESCRIPTIONS: dict[str, str] = {
 # DO NOT rename these variables — build_personalization_hook() uses .format()
 # ──────────────────────────────────────────────────────────────────────────────
 HOOK_TEMPLATES: dict[tuple[str, str], str] = {
-    ("Marketing", "VP"):        "Revenue-focused marketing leaders at {company} are cutting CAC 30% with us.",
-    ("Marketing", "Director"):  "Helping {company} scale demand gen without growing headcount.",
-    ("Marketing", "CXO"):       "CMOs at {size_desc} companies like {company} are unifying pipeline attribution.",
-    ("Marketing", "Manager"):   "Marketing managers at {industry} companies are automating lead scoring in days.",
-    ("Marketing", "IC"):        "How {company}'s marketing team could automate their lead enrichment pipeline.",
-    ("Sales", "VP"):            "VP Sales at {size_desc} {industry} companies compressing ramp time by 40%.",
-    ("Sales", "CXO"):           "CROs at {industry} companies are using us to fix the forecast accuracy problem.",
-    ("Sales", "Director"):      "Sales directors at {size_desc} companies are closing 2x faster with enriched data.",
-    ("Sales", "Manager"):       "Sales managers at {company} are using enrichment to prioritize their pipeline.",
-    ("Sales", "IC"):            "How reps at {industry} companies are hitting quota without more cold calls.",
-    ("Operations", "CXO"):      "COOs at {size_desc} {industry} companies saving 15 hrs/week on manual ops work.",
-    ("Operations", "VP"):       "VP Ops teams at {company} are eliminating data silos between CRM and outreach.",
-    ("Operations", "Director"): "RevOps directors at {industry} companies reducing tool sprawl by 60%.",
-    ("Operations", "Manager"):  "Ops managers at {size_desc} companies automating contact enrichment end-to-end.",
-    ("Engineering", "CXO"):     "CTOs at {size_desc} {industry} startups saving 10 hrs/week on ops overhead.",
-    ("Engineering", "VP"):      "Engineering VPs at {company} cutting integration maintenance by 50%.",
-    ("Engineering", "Director"):"Engineering directors at {industry} companies shipping faster with cleaner data.",
-    ("Finance", "CXO"):         "CFOs at {size_desc} {industry} companies tying pipeline to revenue in real time.",
-    ("Finance", "VP"):          "VP Finance teams at {company} getting ROI clarity on every outreach dollar.",
-    ("Product", "CXO"):         "CPOs at {industry} companies building with richer customer signal from day one.",
-    ("Product", "VP"):          "VP Product at {size_desc} companies reducing churn through better ICP targeting.",
+    # Cybersecurity buyers — primary economic buyers for Flare
+    ("Cybersecurity", "CXO"):       "CISOs at {industry} agencies are cutting dark-web exposure response time from weeks to hours with Flare.",
+    ("Cybersecurity", "VP"):        "Cyber leaders at {company} are force-multiplying their CTI team without adding headcount.",
+    ("Cybersecurity", "Director"):  "CTI directors at {industry} organizations are reclaiming 1,500+ analyst hours per year using Flare's automated dark-web monitoring.",
+    ("Cybersecurity", "Manager"):   "SOC managers at {size_desc} {industry} teams are eliminating manual dark-web triage with Flare's AI-prioritized alerts.",
+    ("Cybersecurity", "IC"):        "How analysts at {company} are cutting credential-leak detection from days to minutes.",
+    # IT buyers — often the technical champion or program owner
+    ("IT", "CXO"):                  "CIOs at {industry} agencies are consolidating external threat visibility into a single pane of glass with Flare.",
+    ("IT", "VP"):                   "IT leaders at {company} are closing vendor-risk blind spots across clear, deep, and dark web in one subscription.",
+    ("IT", "Director"):             "IT security directors at {size_desc} {industry} organizations are operationalizing continuous threat exposure management.",
+    ("IT", "Manager"):              "IT program managers at {company} are meeting CTEM mandates without standing up additional tooling.",
+    ("IT", "IC"):                   "How {company}'s IT security team could automate external attack-surface monitoring end to end.",
+    # Operations — mission-support and SOC operations leads
+    ("Operations", "CXO"):          "COOs at {size_desc} {industry} agencies are reducing fraud and impersonation incidents against public-facing programs.",
+    ("Operations", "VP"):           "Ops leaders at {company} are protecting brand integrity and citizen-facing portals from phishing and domain abuse.",
+    ("Operations", "Director"):     "Operations directors at {industry} organizations are automating brand-monitoring enforcement previously done manually.",
+    ("Operations", "Manager"):      "Ops managers at {size_desc} agencies are cutting response time on impersonation and phishing domains to under 24 hours.",
+    # Procurement — contracting officers and acquisition leads
+    ("Procurement", "CXO"):         "Acquisition executives at {industry} agencies are streamlining dark-web and brand-monitoring into a single SAM-compliant subscription.",
+    ("Procurement", "Director"):    "Contracting directors at {company} are consolidating digital-surveillance and threat-intel buys under NAICS 541519.",
+    ("Procurement", "Manager"):     "Contracting officers at {size_desc} {industry} agencies are finding Flare fits existing threat-intel and brand-monitoring SOWs.",
+    ("Procurement", "IC"):          "How {company}'s acquisition team can structure a Flare subscription under current cyber and intelligence vehicle types.",
+    # Engineering — technical evaluators at primes and MSSPs
+    ("Engineering", "CXO"):         "CTOs at {size_desc} systems integrators are embedding Flare's dark-web engine into their managed detection offerings.",
+    ("Engineering", "VP"):          "Engineering VPs at {company} are reducing custom dark-web tooling by 60% by adopting Flare as a core data source.",
+    ("Engineering", "Director"):    "Engineering directors at {industry} primes are accelerating CTI platform build-outs with Flare's API-first architecture.",
+    ("Engineering", "Manager"):     "Integration managers at {company} are connecting Flare to existing SIEM and SOAR stacks in under a week.",
+    # Finance — budget owners at larger agencies and integrators
+    ("Finance", "CXO"):             "CFOs at {size_desc} {industry} organizations are justifying cyber investment with Flare's measurable analyst-hours-saved metrics.",
+    ("Finance", "VP"):              "Finance VPs at {company} are tying dark-web monitoring ROI to reduced fraud and incident-response costs.",
 }
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Keyword maps for title inference
+# Expanded to capture federal and cyber-specific title patterns.
 # ──────────────────────────────────────────────────────────────────────────────
 _SENIORITY_KEYWORDS: dict[str, list[str]] = {
-    "CXO":      ["ceo", "cto", "cmo", "cro", "coo", "cfo", "chief", "founder", "co-founder", "president"],
-    "VP":       ["vp ", "vice president", "vice-president"],
-    "Director": ["director", "head of", "head,"],
-    "Manager":  ["manager", "lead ", "principal", "staff "],
+    "CXO":      [
+        "ceo", "cto", "cmo", "cro", "coo", "cfo", "ciso", "cso",
+        "chief", "founder", "co-founder", "president", "secretary",
+        "administrator", "commissioner", "director general",
+    ],
+    "VP":       ["vp ", "vice president", "vice-president", "deputy director", "deputy secretary"],
+    "Director": ["director", "head of", "head,", "superintendent", "special agent in charge"],
+    "Manager":  ["manager", "lead ", "principal", "staff ", "program manager", "contracting officer"],
 }
 
 _FUNCTION_KEYWORDS: dict[str, list[str]] = {
-    "Marketing":   ["marketing", "demand gen", "demand generation", "growth", "brand", "content", "seo", "campaigns"],
-    "Sales":       ["sales", "account executive", " ae ", "sdr", "bdr", "business development", "revenue"],
-    "Engineering": ["engineer", "developer", "software", "data", "ml ", "ai ", "architect", "devops", "sre"],
-    "Finance":     ["finance", "financial", "accounting", "controller", "treasury", "fp&a"],
-    "Operations":  ["operations", " ops", "revops", "revenue operations", "enablement", "strategy"],
-    "Product":     ["product", " ux", " ui", "design", "research", " pm ", "program manager"],
+    "Cybersecurity": [
+        "cyber", "ciso", "cso", "soc", "cti", "threat intel", "threat intelligence",
+        "dark web", "security operations", "incident response", "infosec",
+        "information security", "vulnerability", "penetration", "red team",
+        "digital forensics", "fraud prevention", "brand protection",
+    ],
+    "IT": [
+        "information technology", " it ", "it director", "it manager", "cio",
+        "network", "systems administrator", "infrastructure", "cloud", "devops",
+        "sre", "architect", "platform", "data center",
+    ],
+    "Operations": [
+        "operations", " ops", "mission", "intelligence operations",
+        "law enforcement", "investigations", "special agent",
+        "fraud", "compliance", "risk", "brand monitoring",
+    ],
+    "Procurement": [
+        "procurement", "acquisition", "contracting", "contract officer",
+        "contracting officer", "purchasing", "vendor management", "supply chain",
+        "category manager", "grants",
+    ],
+    "Engineering": [
+        "engineer", "developer", "software", "data", "ml ", "ai ", "architect",
+        "integration", "api", "backend", "frontend",
+    ],
+    "Finance": [
+        "finance", "financial", "accounting", "controller", "treasury",
+        "fp&a", "budget", "cost",
+    ],
 }
 
 
