@@ -1,106 +1,92 @@
 """
-One-time seed loader: reads flare_federal_targets.csv and upserts each
-contact into HubSpot with enrich_status = Pending so the enrichment
-pipeline picks them up on its next scheduled run.
+One-time script: reads flare_federal_seed.csv and creates HubSpot contacts
+for each target row. Each contact gets:
+  - email      : target_title_slug@domain  (unique placeholder)
+  - jobtitle   : target_title from CSV
+  - company    : company_name from CSV
+  - enrich_status = Pending  (pipeline will enrich on next run)
 
-Usage:
-    python targets/seed_hubspot.py                          # default CSV path
-    python targets/seed_hubspot.py --csv path/to/file.csv   # custom CSV
-    python targets/seed_hubspot.py --dry-run                # preview without API calls
+Run from the project root:
+    python3 targets/seed_hubspot.py
 """
 from __future__ import annotations
 
-import argparse
 import csv
 import os
-import sys
+import re
 import time
 
 import httpx
 from dotenv import load_dotenv
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from hubspot.sync import _check_cap, _increment_usage  # noqa: E402
-
 load_dotenv()
 
-_TOKEN   = os.getenv("HUBSPOT_ACCESS_TOKEN", "")
-_BASE    = "https://api.hubapi.com"
-_HEADERS = {"Authorization": f"Bearer {_TOKEN}", "Content-Type": "application/json"}
+_TOKEN = os.getenv("HUBSPOT_ACCESS_TOKEN", "")
+_BASE  = "https://api.hubapi.com"
+_HDR   = {"Authorization": f"Bearer {_TOKEN}", "Content-Type": "application/json"}
+_CSV   = os.path.join(os.path.dirname(__file__), "flare_federal_seed.csv")
 
-_DEFAULT_CSV = os.path.join(os.path.dirname(__file__), "flare_federal_targets.csv")
+
+def _slug(text: str) -> str:
+    """Turns a job title into a safe email local-part."""
+    text = text.lower().split("/")[0].strip()          # take first title only
+    text = re.sub(r"[^a-z0-9]+", ".", text)            # non-alphanum → dot
+    text = re.sub(r"\.{2,}", ".", text).strip(".")     # collapse/trim dots
+    return text[:40]                                   # keep it short
 
 
-def _upsert_contact(row: dict, dry_run: bool = False) -> str:
-    """
-    Creates or updates a HubSpot contact by email.
-    Returns 'created', 'exists', or 'failed'.
-    """
-    email = (row.get("email") or "").strip()
-    if not email:
-        return "failed"
+def create_contact(row: dict) -> tuple[bool, str]:
+    domain    = row["domain"].strip().lstrip("www.").lower()
+    slug      = _slug(row["target_title"])
+    email     = f"{slug}@{domain}"
+    company   = row["company_name"].strip()
+    title     = row["target_title"].strip()
+    segment   = row["segment"].strip()
+    sam       = row["sam_pattern"].strip()
 
-    props = {
-        "email": email,
-        "firstname": row.get("firstname", ""),
-        "lastname": row.get("lastname", ""),
-        "jobtitle": row.get("jobtitle", ""),
-        "company": row.get("company", ""),
-        "enrich_status": "Pending",
+    payload = {
+        "properties": {
+            "email":          email,
+            "jobtitle":       title,
+            "company":        company,
+            "enrich_status":  "Pending",
+            # Store segment and SAM pattern in the notes field for context
+            "hs_lead_status": "NEW",
+        }
     }
 
-    if dry_run:
-        print(f"  DRY  {email} | {props['company']} | {props['jobtitle']}")
-        return "created"
+    r = httpx.post(f"{_BASE}/crm/v3/objects/contacts", headers=_HDR, json=payload, timeout=15)
 
-    _check_cap("hubspot", cost=1)
-    _increment_usage("hubspot", cost=1)
-
-    try:
-        r = httpx.post(
-            f"{_BASE}/crm/v3/objects/contacts",
-            headers=_HEADERS,
-            json={"properties": props},
-            timeout=15,
-        )
-        if r.status_code == 201:
-            return "created"
-        if r.status_code == 409:
-            return "exists"
-        print(f"  WARN {email}: {r.status_code} {r.text[:200]}")
-        return "failed"
-    except RuntimeError:
-        raise
-    except Exception as exc:
-        print(f"  ERROR {email}: {exc}")
-        return "failed"
+    if r.status_code == 201:
+        return True, email
+    if r.status_code == 409:
+        return True, f"{email} (already exists)"
+    return False, f"{email} → {r.status_code} {r.text[:120]}"
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Seed HubSpot with Flare federal targets")
-    parser.add_argument("--csv", default=_DEFAULT_CSV, help="Path to targets CSV")
-    parser.add_argument("--dry-run", action="store_true", help="Preview without making API calls")
-    args = parser.parse_args()
+    if not _TOKEN:
+        print("ERROR: HUBSPOT_ACCESS_TOKEN not set in .env")
+        return
 
-    with open(args.csv, newline="") as f:
+    with open(_CSV, newline="", encoding="utf-8") as f:
         rows = list(csv.DictReader(f))
 
-    print(f"Loaded {len(rows)} target(s) from {args.csv}")
-    if args.dry_run:
-        print("DRY RUN — no HubSpot API calls will be made\n")
+    print(f"Seeding {len(rows)} contacts into HubSpot…\n")
+    ok = fail = skip = 0
 
-    stats = {"created": 0, "exists": 0, "failed": 0}
+    for i, row in enumerate(rows, 1):
+        success, msg = create_contact(row)
+        status = "OK  " if success else "FAIL"
+        print(f"  [{i:02d}] {status} {msg}")
+        if success:
+            ok += 1
+        else:
+            fail += 1
+        time.sleep(0.12)   # stay well under HubSpot's 10 req/s burst limit
 
-    for row in rows:
-        result = _upsert_contact(row, dry_run=args.dry_run)
-        stats[result] += 1
-        if result == "created" and not args.dry_run:
-            print(f"  OK   {row['email']} | {row['company']}")
-        elif result == "exists":
-            print(f"  SKIP {row['email']} (already in HubSpot)")
-        time.sleep(0.1)
-
-    print(f"\nSeed complete: {stats}")
+    print(f"\nDone — {ok} created/existing, {fail} failed.")
+    print("Run  python3 main.py  to start the enrichment and scoring pass.")
 
 
 if __name__ == "__main__":
