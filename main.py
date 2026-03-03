@@ -42,14 +42,22 @@ def main() -> None:
         _provision()
         return
 
+    interval_minutes = int(os.getenv("ENRICH_INTERVAL_MINUTES", "0"))
     interval_hours = int(os.getenv("ENRICH_INTERVAL_HOURS", "4"))
+    interval_seconds = interval_minutes * 60 if interval_minutes else interval_hours * 3600
 
     if args.schedule:
-        print(f"Scheduled mode — running every {interval_hours} hour(s). Ctrl+C to stop.")
+        if interval_minutes:
+            print(f"Scheduled mode — running every {interval_minutes} minute(s). Ctrl+C to stop.")
+        else:
+            print(f"Scheduled mode — running every {interval_hours} hour(s). Ctrl+C to stop.")
         while True:
             _run_once()
-            print(f"Sleeping {interval_hours}h until next run…")
-            time.sleep(interval_hours * 3600)
+            if interval_minutes:
+                print(f"Sleeping {interval_minutes}m until next run…")
+            else:
+                print(f"Sleeping {interval_hours}h until next run…")
+            time.sleep(interval_seconds)
     else:
         _run_once()
 
