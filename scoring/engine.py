@@ -50,6 +50,7 @@ SIZE_WEIGHTS: dict[str, int] = {
     "1001+": 10,
     "11-50": 6,
     "1-10": 2,
+    "Unknown": 2,   # fallback when employee_range is not available
 }
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -155,12 +156,14 @@ def score_lead(
 ) -> dict:
     """
     Returns sub-scores, total score, and tier.
-    All inputs are optional — missing signals score 0 (or the Other bucket).
+    All inputs are optional. Missing signals fall back to their respective
+    minimum-confidence bucket: Other (industry/function), IC (seniority),
+    Unknown (company size) — never a hard zero.
     """
     s_icp      = ICP_INDUSTRIES.get(industry or "", ICP_INDUSTRIES["Other"])
     s_seniority = SENIORITY_WEIGHTS.get(seniority or "", SENIORITY_WEIGHTS["IC"])
     s_function  = FUNCTION_WEIGHTS.get(job_function or "", FUNCTION_WEIGHTS["Other"])
-    s_size      = SIZE_WEIGHTS.get(employee_range or "", 0)
+    s_size      = SIZE_WEIGHTS.get(employee_range or "", SIZE_WEIGHTS["Unknown"])
     total       = s_icp + s_seniority + s_function + s_size
     return {
         "score_icp_fit":      s_icp,
