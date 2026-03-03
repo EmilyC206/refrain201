@@ -42,6 +42,20 @@ No linting tools are configured in this repository. You may run `python -m py_co
 - **Clearbit** (optional): Set `CLEARBIT_API_KEY` for company enrichment. Pipeline gracefully degrades without it.
 - **Hunter.io** (optional): Set `HUNTER_API_KEY` for email verification. Pipeline gracefully degrades without it.
 
+### Running the background enrichment daemon
+
+To run the pipeline continuously so it auto-enriches new HubSpot contacts:
+
+```bash
+source venv/bin/activate
+PYTHONUNBUFFERED=1 nohup python main.py --schedule > /workspace/enrichment.log 2>&1 &
+```
+
+- Default interval is every 4 hours. Set `ENRICH_INTERVAL_HOURS` in `.env` to change (e.g. `ENRICH_INTERVAL_HOURS=1` for hourly).
+- Check logs with `tail -f /workspace/enrichment.log`.
+- The pipeline picks up any HubSpot contact where `enrich_status` is `Pending` or unset.
+- `PYTHONUNBUFFERED=1` is required or log output will be delayed by Python's stdout buffer.
+
 ### Gotchas
 
 - The `pyproject.toml` declares a separate `coldlead` package with `typer` CLI under `src/`, but that code does not exist yet. The actual runnable code uses `main.py` with `argparse` and `requirements.txt`.
