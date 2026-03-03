@@ -81,8 +81,8 @@ HubSpot workflows and lists route the lead automatically
 │                    Python Pipeline (local or cloud)              │
 │                                                                  │
 │  enrichment/pipeline.py                                          │
-│    ├── clearbit API  ──→ company: industry, size, tech_stack    │
-│    ├── hunter.io API ──→ person: email validity, name           │
+│    ├── Wikidata SPARQL  ──→ company: industry, employees, HQ    │
+│    ├── hunter.io API    ──→ person: email validity, name        │
 │    ├── keyword inference ──→ seniority, job_function            │
 │    ├── scoring/engine.py ──→ 0-100 score + Hot/Warm/Cool/Cold  │
 │    └── hook builder ──→ personalization sentence                │
@@ -163,11 +163,11 @@ There are **3 tables**. Understand all three before touching anything.
 | `job_title` | String | Raw job title from HubSpot |
 | `seniority` | String | Inferred ENUM: IC / Manager / Director / VP / CXO |
 | `job_function` | String | Inferred ENUM: Marketing / Sales / Engineering / Finance / Operations / Product / Other |
-| `company_name` | String | From Clearbit or HubSpot `company` field |
-| `industry` | String | From Clearbit |
+| `company_name` | String | From Wikidata or HubSpot `company` field |
+| `industry` | String | From Wikidata (if available) |
 | `employee_range` | String | ENUM: 1-10 / 11-50 / 51-200 / 201-1000 / 1001+ |
-| `hq_country` | String | From Clearbit |
-| `tech_stack_json` | JSON | List of up to 8 detected technologies |
+| `hq_country` | String | From Wikidata (if available) |
+| `tech_stack_json` | JSON | Reserved (not populated by default) |
 | `score_icp_fit` | Integer | Sub-score 0–40 pts |
 | `score_seniority` | Integer | Sub-score 0–25 pts |
 | `score_function` | Integer | Sub-score 0–20 pts |
@@ -216,7 +216,7 @@ and `Pending` in HubSpot — both sides agree it needs a retry on the next run.
 | Column | Purpose |
 |---|---|
 | `date` | YYYY-MM-DD |
-| `provider` | hubspot / hunter / clearbit |
+| `provider` | hubspot / hunter / wikidata |
 | `call_count` | Running total for today |
 | `cap` | Maximum allowed calls today |
 
@@ -304,7 +304,7 @@ COMPANIES (3 slots):
 - A HubSpot Free account
 - A HubSpot Private App token (not an API key — deprecated)
 - Optional: Hunter.io free account (25 lookups/mo)
-- Optional: Clearbit account (free reveal tier)
+- Optional: None for company enrichment — Wikidata SPARQL is used by default (no key)
 
 ### Step 1: Create a virtual environment
 ```bash
@@ -373,7 +373,7 @@ Runs immediately, then repeats every `ENRICH_INTERVAL_HOURS` hours (default: 4).
 ### What Happens During a Run
 1. `fetch_pending_contacts()` — finds contacts where `enrich_status = Pending` or unset
 2. Extract domain from email
-3. Call Clearbit with domain → company data
+3. Query Wikidata SPARQL with the domain → company data (industry, employees, HQ when available)
 4. Call Hunter with email → person validation
 5. Infer `seniority` and `job_function` from job title
 6. `score_lead()` → sub-scores + total + tier
@@ -450,7 +450,7 @@ Columns: `lead_total_score` (sort desc), `lead_score_tier`, `enrich_seniority`, 
 | `401 Unauthorized` | Token invalid or expired | Re-generate Private App token |
 | `403 Forbidden` on provision | Missing `crm.schemas.contacts.write` scope | Edit Private App, add scope |
 | `Daily cap reached` | Hit 38,000 HubSpot calls | Increase `BATCH_SIZE` or lower enrichment frequency |
-| `clearbit 422 / 404` | Domain not in Clearbit | Normal — pipeline marks source as partial and continues |
+| Wikidata returns no results | Domain not present as an official website in Wikidata | Normal — pipeline uses fallbacks and continues |
 | `SQLite database is locked` | Two pipeline instances running | Kill all, run as single process |
 | All scores are 0 | Job title empty in HubSpot | Ensure `jobtitle` is populated before enrichment |
 | `enrich_hook` blank | Missing `(function, seniority)` pair | Add template to `HOOK_TEMPLATES` in `engine.py` |
@@ -471,11 +471,41 @@ Columns: `lead_total_score` (sort desc), `lead_score_tier`, `enrich_seniority`, 
 
 ---
 
+## Enrichment Watchdog (Email Alerts)
+
+`watchdog.py` scans SQLite after each pipeline run and emails you a report
+if any of these conditions are true:
+
+- Contacts stuck in `Failed` or `hs_pending` status
+- Enriched contacts missing industry data (Wikidata had no match for the domain)
+- Any API provider at 80%+ of its daily cap
+
+### Setup
+Add these to `.env`:
+```
+WATCHDOG_SMTP_HOST=smtp.gmail.com
+WATCHDOG_SMTP_PORT=587
+WATCHDOG_SMTP_USER=you@gmail.com
+WATCHDOG_SMTP_PASSWORD=your-app-password
+WATCHDOG_NOTIFY_EMAIL=alerts@yourcompany.com
+```
+
+### Run
+```bash
+python watchdog.py
+```
+
+If SMTP is not configured, the report prints to stdout instead. Run it after
+each pipeline pass or on its own cron schedule.
+
+---
+
 ## Quick Reference: Key Files & Their Single Responsibility
 
 | File | One Job |
 |---|---|
 | `main.py` | Entry point. Args: `--provision`, `--schedule`, or bare run |
+| `watchdog.py` | Post-run alert script. Emails you when enrichment has issues. |
 | `db/schema.py` | Defines the 3 SQLite tables. Call `init_db()` once at startup |
 | `hubspot/properties.py` | Provisions HubSpot custom properties via API. Run once. |
 | `hubspot/sync.py` | Reads from and writes to HubSpot. Enforces rate limits. |
@@ -486,4 +516,5 @@ Columns: `lead_total_score` (sort desc), `lead_score_tier`, `enrich_seniority`, 
 ---
 
 *Built for HubSpot Free CRM. Python 3.10+. No paid enrichment tools required.*
+*Uses Wikidata SPARQL for company enrichment (no API key). Hunter.io optional.*
 *Maintained by RevOps Engineering.*

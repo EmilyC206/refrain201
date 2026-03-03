@@ -22,7 +22,8 @@ _HS_CAP     = int(os.getenv("DAILY_HS_CALL_CAP", "38000"))
 _PROVIDER_CAPS: dict[str, int] = {
     "hubspot":  _HS_CAP,
     "hunter":   25,
-    "clearbit": 500,
+    # Wikidata SPARQL is public/shared infra: keep a conservative cap by default.
+    "wikidata": 2000,
 }
 
 

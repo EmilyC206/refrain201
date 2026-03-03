@@ -6,6 +6,7 @@ from typing import Any
 
 import httpx
 from dotenv import load_dotenv
+from urllib.parse import urlparse
 
 from db.schema import LeadRecord, ScoringHistory, Session
 from hubspot.sync import _check_cap, _increment_usage, batch_update_contacts, fetch_pending_contacts
@@ -13,8 +14,13 @@ from scoring.engine import SIZE_DESCRIPTIONS, build_personalization_hook, infer_
 
 load_dotenv()
 
-_CLEARBIT_KEY = os.getenv("CLEARBIT_API_KEY", "")
 _HUNTER_KEY   = os.getenv("HUNTER_API_KEY", "")
+_WIKIDATA_ENDPOINT = os.getenv("WIKIDATA_ENDPOINT", "https://query.wikidata.org/sparql")
+_WIKIDATA_UA = os.getenv(
+    "WIKIDATA_USER_AGENT",
+    "refrain201/0.1 (Wikidata SPARQL client; contact: you@example.com)",
+)
+_WIKIDATA_TIMEOUT_S = float(os.getenv("WIKIDATA_TIMEOUT_S", "30"))
 _HTTP_TIMEOUT = 15
 
 
@@ -22,22 +28,173 @@ def _extract_domain(email: str) -> str:
     return email.split("@")[-1].lower().strip() if "@" in email else ""
 
 
-def _fetch_clearbit(domain: str) -> dict[str, Any]:
-    """Calls Clearbit Company API. Returns {} if key unset or call fails."""
-    if not _CLEARBIT_KEY or not domain:
+def _fetch_wikidata(domain: str, company_hint: str | None = None) -> dict[str, Any]:
+    """
+    Calls Wikidata SPARQL to enrich company facts from an email domain.
+    Returns a dict with keys: name, industry, employees, country (when available).
+    """
+    if not domain:
         return {}
-    _check_cap("clearbit", cost=1)
-    _increment_usage("clearbit", cost=1)  # record before the call — a failed request still consumed a slot
+
+    domain_l = domain.lower().replace('"', "")
+    hint_l = (company_hint or "").strip().lower().replace('"', "")
+
+    # Anchor to the host, otherwise domains like "notgoogle.com/?ref=google.com" can match.
+    # Allow subdomains: ([a-z0-9-]+\\.)*example\\.com
+    domain_regex = domain_l.replace(".", "\\\\.")
+    hint_clause = ""
+    if hint_l:
+        hint_clause = f"""
+  ?item rdfs:label ?label .
+  FILTER(LANG(?label) = "en")
+  FILTER(CONTAINS(LCASE(STR(?label)), "{hint_l}"))
+""".rstrip()
+
+    def _run_query(*, host_regex: str | None, require_website: bool) -> list[dict]:
+        website_line = "?item wdt:P856 ?website ." if require_website else "OPTIONAL { ?item wdt:P856 ?website . }"
+        host_filter = f'FILTER(REGEX(LCASE(STR(?website)), "{host_regex}"))' if host_regex else ""
+        query = f"""
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+SELECT ?item ?itemLabel ?website ?industryItemLabel ?employees ?countryItemLabel
+WHERE {{
+  VALUES ?type {{ wd:Q43229 wd:Q4830453 wd:Q783794 wd:Q6881511 }}
+  ?item wdt:P31 ?type .
+  {website_line}
+  {host_filter}
+{hint_clause}
+  OPTIONAL {{ ?item wdt:P452 ?industryItem . }}
+  OPTIONAL {{ ?item wdt:P1128 ?employees . }}
+  OPTIONAL {{ ?item wdt:P17 ?countryItem . }}
+  SERVICE wikibase:label {{ bd:serviceParam wikibase:language "en". }}
+}}
+LIMIT 50
+""".strip()
+
+        try:
+            _check_cap("wikidata", cost=1)
+            _increment_usage("wikidata", cost=1)  # record before the call — a failed request still consumed a slot
+            r = httpx.get(
+                _WIKIDATA_ENDPOINT,
+                params={"format": "json", "query": query},
+                headers={"Accept": "application/sparql+json", "User-Agent": _WIKIDATA_UA},
+                timeout=httpx.Timeout(_WIKIDATA_TIMEOUT_S),
+            )
+            if r.status_code != 200:
+                return []
+            data = r.json()
+            return (((data or {}).get("results") or {}).get("bindings") or [])
+        except Exception:
+            return []
+
     try:
-        r = httpx.get(
-            "https://company.clearbit.com/v1/companies/find",
-            params={"domain": domain},
-            headers={"Authorization": f"Bearer {_CLEARBIT_KEY}"},
-            timeout=_HTTP_TIMEOUT,
-        )
-        if r.status_code == 200:
-            return r.json()
-        return {}
+        # Prefer the root domain (or www.) match to avoid subdomain noise.
+        root_regex = f"^(https?://)?(www\\\\.)?{domain_regex}(/|$)"
+        sub_regex  = f"^(https?://)?([a-z0-9-]+\\\\.)*{domain_regex}(/|$)"
+
+        bindings = _run_query(host_regex=root_regex, require_website=True)
+        if not bindings:
+            bindings = _run_query(host_regex=sub_regex, require_website=True)
+        if not bindings and hint_l:
+            # Fallback: domain may not match the org's official website (e.g. google.com → about.google).
+            # Try a hint-only lookup and rank candidates by website similarity.
+            bindings = _run_query(host_regex=None, require_website=False)
+        if not bindings:
+            return {}
+        def _v(row: dict, key: str) -> str | None:
+            return (row.get(key) or {}).get("value")
+
+        by_item: dict[str, dict[str, Any]] = {}
+
+        for row in bindings:
+            item_uri = _v(row, "item")
+            if not item_uri:
+                continue
+
+            entry = by_item.setdefault(
+                item_uri,
+                {
+                    "name": _v(row, "itemLabel"),
+                    "industry": None,
+                    "country": None,
+                    "employees": None,
+                    "websites": [],
+                },
+            )
+
+            w = _v(row, "website")
+            if w:
+                entry["websites"].append(w)
+
+            if not entry["industry"]:
+                entry["industry"] = _v(row, "industryItemLabel")
+            if not entry["country"]:
+                entry["country"] = _v(row, "countryItemLabel")
+
+            emp_raw = _v(row, "employees")
+            if emp_raw:
+                try:
+                    emp = int(float(emp_raw))
+                    entry["employees"] = emp if entry["employees"] is None else max(entry["employees"], emp)
+                except Exception:
+                    pass
+
+        def _score(candidate: dict[str, Any]) -> int:
+            label = (candidate.get("name") or "").lower()
+            score = 0
+            brand = domain_l.split(".")[0]
+
+            if hint_l:
+                if label == hint_l:
+                    score += 100
+                elif label.startswith(hint_l):
+                    score += 60
+                elif hint_l in label:
+                    score += 30
+
+            # Penalize obvious community/group pages that often sit on subdomains.
+            if any(bad in label for bad in ("developer", "developers", "group", "community", "user group", "gdg")):
+                score -= 40
+            if any(bad in label for bad in ("affiliate", "network", "forum", "club")):
+                score -= 20
+
+            # Prefer \"more official\" entities (they tend to have these fields populated).
+            if candidate.get("employees") is not None:
+                score += 20
+            if candidate.get("industry"):
+                score += 5
+            if candidate.get("country"):
+                score += 5
+
+            # Prefer shorter names when all else is equal (\"Google\" > \"Google X Y Z\").
+            words = [w for w in label.split() if w]
+            if len(words) > 1:
+                score -= 3 * (len(words) - 1)
+
+            for website in candidate.get("websites") or []:
+                host = (urlparse(website).hostname or "").lower()
+                if host in {domain_l, f"www.{domain_l}"}:
+                    score += 30
+                elif host.endswith(f".{domain_l}"):
+                    score += 10
+                if brand and (host.endswith(f".{brand}") or brand in host):
+                    score += 5
+
+            return score
+
+        best = max(by_item.values(), key=_score, default=None)
+        if not best:
+            return {}
+
+        name = best.get("name") or ""
+        if name.startswith("Q") and name[1:].isdigit():
+            name = ""
+
+        return {
+            "name": name or None,
+            "industry": best.get("industry"),
+            "employees": best.get("employees"),
+            "country": best.get("country"),
+        }
     except Exception:
         return {}
 
@@ -91,19 +248,18 @@ def _enrich_one(contact: dict) -> dict | None:
     job_title    = props.get("jobtitle") or ""
     company_name = props.get("company") or ""
 
-    clearbit = _fetch_clearbit(domain)
+    wikidata = _fetch_wikidata(domain, company_hint=company_name)
     hunter   = _fetch_hunter(email)
 
-    # Clearbit-derived fields
-    industry       = (clearbit.get("category") or {}).get("industry") or None
-    employee_cnt   = (clearbit.get("metrics") or {}).get("employees")
-    employee_range = _map_employee_count(employee_cnt)
-    hq_country     = (clearbit.get("geo") or {}).get("country") or None
-    tech_stack     = [t.get("name") for t in (clearbit.get("tech") or [])[:8] if t.get("name")]
+    industry       = wikidata.get("industry") or None
+    employee_cnt   = wikidata.get("employees")
+    employee_range = _map_employee_count(employee_cnt) if isinstance(employee_cnt, int) else None
+    hq_country     = wikidata.get("country") or None
+    tech_stack     = None
     if not company_name:
-        company_name = clearbit.get("name") or ""
+        company_name = wikidata.get("name") or ""
 
-    # Hunter can supplement the company name when Clearbit is unavailable
+    # Hunter can supplement the company name when Wikidata has no match
     if not company_name and hunter:
         company_name = hunter.get("company") or ""
 
@@ -126,7 +282,7 @@ def _enrich_one(contact: dict) -> dict | None:
         seniority=seniority,
     )
 
-    sources = [name for name, data in [("clearbit", clearbit), ("hunter", hunter)] if data]
+    sources = [name for name, data in [("wikidata", wikidata), ("hunter", hunter)] if data]
 
     return {
         "hs_contact_id":      hs_id,
