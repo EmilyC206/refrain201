@@ -1,5 +1,5 @@
 """
-One-time seed loader: reads flare_federal_targets.csv and upserts each
+One-time seed loader: reads illuminationdevice_federal_targets.csv and upserts each
 contact into HubSpot with enrich_status = Pending so the enrichment
 pipeline picks them up on its next scheduled run.
 
@@ -28,7 +28,7 @@ _TOKEN   = os.getenv("HUBSPOT_ACCESS_TOKEN", "")
 _BASE    = "https://api.hubapi.com"
 _HEADERS = {"Authorization": f"Bearer {_TOKEN}", "Content-Type": "application/json"}
 
-_DEFAULT_CSV = os.path.join(os.path.dirname(__file__), "flare_federal_targets.csv")
+_DEFAULT_CSV = os.path.join(os.path.dirname(__file__), "illuminationdevice_federal_targets.csv")
 
 
 def _upsert_contact(row: dict, dry_run: bool = False) -> str:
@@ -77,7 +77,7 @@ def _upsert_contact(row: dict, dry_run: bool = False) -> str:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Seed HubSpot with Flare federal targets")
+    parser = argparse.ArgumentParser(description="Seed HubSpot with IlluminationDevice federal targets")
     parser.add_argument("--csv", default=_DEFAULT_CSV, help="Path to targets CSV")
     parser.add_argument("--dry-run", action="store_true", help="Preview without making API calls")
     args = parser.parse_args()

@@ -1,4 +1,4 @@
-# Flare Federal HubSpot Enrichment Playbook
+# IlluminationDevice Federal HubSpot Enrichment Playbook
 
 **How to run a federal cybersecurity go-to-market motion on HubSpot's free tier using automated lead enrichment, scoring, and personalized outreach.**
 
@@ -56,7 +56,7 @@ HubSpot free allows exactly 10 custom properties. Every one is allocated:
 
 ## Scoring Model: How Contacts Get Ranked
 
-Every contact scores 0–100 across four dimensions tuned for Flare's federal ICP:
+Every contact scores 0–100 across four dimensions tuned for IlluminationDevice's federal ICP:
 
 ### ICP Industry Fit (40 points max)
 
@@ -82,7 +82,7 @@ Every contact scores 0–100 across four dimensions tuned for Flare's federal IC
 
 ### Job Function (20 points max)
 
-| Function | Points | Flare's Champion Persona |
+| Function | Points | IlluminationDevice's Champion Persona |
 |---|---|---|
 | Security | 20 | CISO and security operations — the buyer |
 | Threat Intelligence | 20 | CTI teams — the daily user |
@@ -144,7 +144,7 @@ These are CISOs, CTI directors, and section chiefs at federal agencies with acti
 
 **Filter:** `lead_score_tier = Hot` AND `enrich_function IN [Sales, Marketing, Security]` AND company matches prime/MSSP names
 
-These are the Booz Allen cyber VPs, CACI intelligence directors, and Optiv federal practice leads who can embed Flare into their managed services or proposals.
+These are the Booz Allen cyber VPs, CACI intelligence directors, and Optiv federal practice leads who can embed IlluminationDevice into their managed services or proposals.
 
 **Outreach:** Partnership pitch. Use `enrich_hook` templates that reference proposals, recompetes, and subcontract differentiation.
 
@@ -154,7 +154,7 @@ These are the Booz Allen cyber VPs, CACI intelligence directors, and Optiv feder
 
 Contacts with the right function but weaker industry or seniority fit. Future opportunities when budget cycles or org changes create openings.
 
-**Outreach:** Quarterly email with relevant Flare case study. Invite to webinar or event. Monitor for re-enrichment triggers.
+**Outreach:** Quarterly email with relevant IlluminationDevice case study. Invite to webinar or event. Monitor for re-enrichment triggers.
 
 ### List 4: "Enrichment Failed"
 
@@ -174,10 +174,10 @@ Templates are keyed by `(job_function, seniority)`:
 
 | Persona | Hook |
 |---|---|
-| Security + CXO | "CISOs at {company} are using Flare to surface credential leaks and dark-web threats before adversaries act." |
+| Security + CXO | "CISOs at {company} are using IlluminationDevice to surface credential leaks and dark-web threats before adversaries act." |
 | Threat Intelligence + Director | "Threat intel directors at {company} are detecting credential exposures and brand abuse in hours, not weeks." |
-| Procurement + Manager | "Contracting officers at {industry} agencies are evaluating Flare's dark-web platform for existing cyber task orders." |
-| Sales + VP (for primes) | "VP Sales at {size_desc} {industry} primes are embedding Flare into proposals to win cyber task orders." |
+| Procurement + Manager | "Contracting officers at {industry} agencies are evaluating IlluminationDevice's dark-web platform for existing cyber task orders." |
+| Sales + VP (for primes) | "VP Sales at {size_desc} {industry} primes are embedding IlluminationDevice into proposals to win cyber task orders." |
 
 30 templates covering every function × seniority combination relevant to federal cyber.
 
@@ -258,7 +258,7 @@ Create a HubSpot email template. First line:
 {{ contact.enrich_hook }}
 ```
 
-Body: Standard Flare value prop for the contact's tier.
+Body: Standard IlluminationDevice value prop for the contact's tier.
 
 ---
 
@@ -282,16 +282,16 @@ Tier 4 targets aren't people — they're procurement paths. Track these as HubSp
 
 Use the `enrich_payload_json` field and HubSpot notes to track competitive context per account:
 
-| Incumbent | Where They Are | Flare's Angle |
+| Incumbent | Where They Are | IlluminationDevice's Angle |
 |---|---|---|
 | ZeroFox | CISA SCS, GSA, DoD ESI, CDM | Deeper dark web: 50K Telegram channels, 92% stealer log ecosystem, data to 2017 |
 | Recorded Future | USCYBERCOM | Dark web depth vs. their breadth. Complementary specialist positioning |
 | DarkOwl | SEWP V, ITES-SW2 via Four Inc. | Integrated CTEM platform vs. data-only. Better analyst UX |
-| Mandiant | CISA SCS, Accenture Federal | Complementary — Flare adds dark web specialty to their IR/TI stack |
+| Mandiant | CISA SCS, Accenture Federal | Complementary — IlluminationDevice adds dark web specialty to their IR/TI stack |
 | SpyCloud | AFRL SBIR pipeline | Broader than identity-only. Full CTEM coverage |
-| Dataminr | DISA (30 seats) | Different coverage — surface web vs. Flare's dark web |
+| Dataminr | DISA (30 seats) | Different coverage — surface web vs. IlluminationDevice's dark web |
 
-When engaging a target account, check if an incumbent is already embedded. Position Flare as:
+When engaging a target account, check if an incumbent is already embedded. Position IlluminationDevice as:
 - **Replacement** (ZeroFox, DarkOwl) — deeper coverage, better value
 - **Complement** (Recorded Future, Mandiant, Dataminr) — adds dark web layer they don't have
 
@@ -341,10 +341,10 @@ The system is designed to scale. Load 10 contacts or 10,000 — the pipeline han
 | File | Purpose |
 |---|---|
 | `main.py` | Entry point: `--provision`, `--schedule`, or bare run |
-| `scoring/engine.py` | Flare federal ICP weights, hook templates, title inference |
+| `scoring/engine.py` | IlluminationDevice federal ICP weights, hook templates, title inference |
 | `enrichment/pipeline.py` | Fetch → enrich → score → hook → write to SQLite & HubSpot |
 | `hubspot/sync.py` | HubSpot batch read/write with rate-limit guards |
 | `hubspot/properties.py` | One-time provisioning of 10 custom properties |
 | `db/schema.py` | SQLite tables: lead_records, scoring_history, api_usage_log |
-| `targets/flare_federal_targets.csv` | Pre-researched federal targeting list |
+| `targets/illuminationdevice_federal_targets.csv` | Pre-researched federal targeting list |
 | `targets/seed_hubspot.py` | One-time CSV → HubSpot loader |

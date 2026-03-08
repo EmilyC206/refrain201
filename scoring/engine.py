@@ -2,7 +2,7 @@ from __future__ import annotations
 
 # ──────────────────────────────────────────────────────────────────────────────
 # ICP Industry Fit weights (max 40 pts)
-# Tuned for Flare's federal cybersecurity / dark-web intelligence ICP.
+# Tuned for IlluminationDevice's federal cybersecurity / dark-web intelligence ICP.
 # ──────────────────────────────────────────────────────────────────────────────
 ICP_INDUSTRIES: dict[str, int] = {
     "Federal Government / Defense": 40,
@@ -28,7 +28,7 @@ SENIORITY_WEIGHTS: dict[str, int] = {
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Job function weights (max 20 pts)
-# Ranked by Flare's federal champion personas: security and threat-intel
+# Ranked by IlluminationDevice's federal champion personas: security and threat-intel
 # buyers, then IT/eng who integrate, then ops/procurement who purchase.
 # ──────────────────────────────────────────────────────────────────────────────
 FUNCTION_WEIGHTS: dict[str, int] = {
@@ -79,40 +79,40 @@ SIZE_DESCRIPTIONS: dict[str, str] = {
 # ──────────────────────────────────────────────────────────────────────────────
 HOOK_TEMPLATES: dict[tuple[str, str], str] = {
     # Security
-    ("Security", "CXO"):       "CISOs at {company} are using Flare to surface credential leaks and dark-web threats before adversaries act.",
-    ("Security", "VP"):        "VP Security teams at {size_desc} {industry} organizations are cutting threat triage time 60% with Flare.",
+    ("Security", "CXO"):       "CISOs at {company} are using IlluminationDevice to surface credential leaks and dark-web threats before adversaries act.",
+    ("Security", "VP"):        "VP Security teams at {size_desc} {industry} organizations are cutting threat triage time 60% with IlluminationDevice.",
     ("Security", "Director"):  "Security directors at {company} are replacing manual dark-web monitoring with continuous automated detection.",
     ("Security", "Manager"):   "Security managers at {industry} agencies are getting analyst-ready dark-web alerts — no more noise.",
     ("Security", "IC"):        "How analysts at {company} are getting actionable dark-web intelligence without extra headcount.",
     # Threat Intelligence
-    ("Threat Intelligence", "CXO"):       "CTI leaders at {company} are force-multiplying their analysts with Flare's automated dark-web collection.",
+    ("Threat Intelligence", "CXO"):       "CTI leaders at {company} are force-multiplying their analysts with IlluminationDevice's automated dark-web collection.",
     ("Threat Intelligence", "VP"):        "VP Threat Intel at {size_desc} {industry} organizations are eliminating blind spots across paste sites, forums, and marketplaces.",
     ("Threat Intelligence", "Director"):  "Threat intel directors at {company} are detecting credential exposures and brand abuse in hours, not weeks.",
     ("Threat Intelligence", "Manager"):   "CTI managers at {industry} agencies are automating the collection their team used to do manually.",
     ("Threat Intelligence", "IC"):        "How threat analysts at {company} are spending less time collecting and more time hunting.",
     # IT / Engineering
-    ("IT / Engineering", "CXO"):       "CTOs at {size_desc} {industry} organizations are integrating Flare's dark-web feed directly into their SIEM/SOAR stack.",
+    ("IT / Engineering", "CXO"):       "CTOs at {size_desc} {industry} organizations are integrating IlluminationDevice's dark-web feed directly into their SIEM/SOAR stack.",
     ("IT / Engineering", "VP"):        "VP Engineering at {company} are closing the gap between external threat data and internal detection logic.",
-    ("IT / Engineering", "Director"):  "IT directors at {industry} agencies are deploying Flare's API to enrich alerts with dark-web context automatically.",
-    ("IT / Engineering", "Manager"):   "Engineering leads at {company} are integrating Flare in days — not months — with pre-built connectors.",
+    ("IT / Engineering", "Director"):  "IT directors at {industry} agencies are deploying IlluminationDevice's API to enrich alerts with dark-web context automatically.",
+    ("IT / Engineering", "Manager"):   "Engineering leads at {company} are integrating IlluminationDevice in days — not months — with pre-built connectors.",
     # Operations
-    ("Operations", "CXO"):       "COOs at {size_desc} {industry} organizations are reducing manual threat-monitoring overhead by 70% with Flare.",
+    ("Operations", "CXO"):       "COOs at {size_desc} {industry} organizations are reducing manual threat-monitoring overhead by 70% with IlluminationDevice.",
     ("Operations", "VP"):        "VP Ops teams at {company} are unifying dark-web, brand-monitoring, and credential-leak workflows in one platform.",
     ("Operations", "Director"):  "Operations directors at {industry} agencies are automating the threat-intel pipeline end to end.",
-    ("Operations", "Manager"):   "Ops managers at {company} are eliminating spreadsheet-based threat tracking with Flare's continuous monitoring.",
+    ("Operations", "Manager"):   "Ops managers at {company} are eliminating spreadsheet-based threat tracking with IlluminationDevice's continuous monitoring.",
     # Procurement / Contracting
     ("Procurement / Contracting", "CXO"):       "Procurement executives at {company} are streamlining dark-web intelligence acquisition through existing vehicles.",
-    ("Procurement / Contracting", "VP"):        "VP Contracting at {size_desc} {industry} organizations are adding Flare to BPAs and IDIQs for immediate analyst access.",
-    ("Procurement / Contracting", "Director"):  "Contracting directors at {company} are enabling threat-intel teams with Flare via GSA Schedule or micro-purchase.",
-    ("Procurement / Contracting", "Manager"):   "Contracting officers at {industry} agencies are evaluating Flare's dark-web platform for existing cyber task orders.",
+    ("Procurement / Contracting", "VP"):        "VP Contracting at {size_desc} {industry} organizations are adding IlluminationDevice to BPAs and IDIQs for immediate analyst access.",
+    ("Procurement / Contracting", "Director"):  "Contracting directors at {company} are enabling threat-intel teams with IlluminationDevice via GSA Schedule or micro-purchase.",
+    ("Procurement / Contracting", "Manager"):   "Contracting officers at {industry} agencies are evaluating IlluminationDevice's dark-web platform for existing cyber task orders.",
     # Marketing / Sales (for primes and channel partners)
-    ("Marketing", "VP"):        "Marketing leaders at {company} are positioning Flare's dark-web intelligence as a key differentiator in federal proposals.",
-    ("Marketing", "Director"):  "Marketing directors at {size_desc} {industry} primes are using Flare to strengthen their cyber recompete narratives.",
-    ("Marketing", "Manager"):   "Marketing managers at {company} are building Flare-powered case studies that win federal cyber deals.",
-    ("Sales", "VP"):            "VP Sales at {size_desc} {industry} primes are embedding Flare into proposals to win cyber task orders.",
-    ("Sales", "CXO"):           "CROs at {industry} integrators are using Flare as a subcontract differentiator on federal cyber recompetes.",
-    ("Sales", "Director"):      "Sales directors at {company} are closing federal cyber deals faster by teaming with Flare.",
-    ("Sales", "Manager"):       "Account managers at {industry} primes are adding Flare's dark-web monitoring to existing SOC contracts.",
+    ("Marketing", "VP"):        "Marketing leaders at {company} are positioning IlluminationDevice's dark-web intelligence as a key differentiator in federal proposals.",
+    ("Marketing", "Director"):  "Marketing directors at {size_desc} {industry} primes are using IlluminationDevice to strengthen their cyber recompete narratives.",
+    ("Marketing", "Manager"):   "Marketing managers at {company} are building IlluminationDevice-powered case studies that win federal cyber deals.",
+    ("Sales", "VP"):            "VP Sales at {size_desc} {industry} primes are embedding IlluminationDevice into proposals to win cyber task orders.",
+    ("Sales", "CXO"):           "CROs at {industry} integrators are using IlluminationDevice as a subcontract differentiator on federal cyber recompetes.",
+    ("Sales", "Director"):      "Sales directors at {company} are closing federal cyber deals faster by teaming with IlluminationDevice.",
+    ("Sales", "Manager"):       "Account managers at {industry} primes are adding IlluminationDevice's dark-web monitoring to existing SOC contracts.",
 }
 
 # ──────────────────────────────────────────────────────────────────────────────
