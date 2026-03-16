@@ -78,23 +78,23 @@ HubSpot workflows and lists route the lead automatically
                            │  fetch_pending_contacts() [batch read]
                            ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                    Python Pipeline (local or cloud)              │
-│                                                                  │
-│  enrichment/pipeline.py                                          │
+│                    Python Pipeline (local or cloud)             │
+│                                                                 │
+│  enrichment/pipeline.py                                         │
 │    ├── Wikidata SPARQL  ──→ company: industry, employees, HQ    │
 │    ├── hunter.io API    ──→ person: email validity, name        │
 │    ├── keyword inference ──→ seniority, job_function            │
-│    ├── scoring/engine.py ──→ 0-100 score + Hot/Warm/Cool/Cold  │
+│    ├── scoring/engine.py ──→ 0-100 score + Hot/Warm/Cool/Cold   │
 │    └── hook builder ──→ personalization sentence                │
-│                                                                  │
-│  hubspot/sync.py                                                 │
-│    └── batch_update_contacts() [batch write, 100 per call]     │
-│    └── _check_cap() [guards HubSpot 40k/day limit]             │
+│                                                                 │
+│  hubspot/sync.py                                                │
+│    └── batch_update_contacts() [batch write, 100 per call]      │
+│    └── _check_cap() [guards HubSpot 40k/day limit]              │
 └──────────────────────────┬──────────────────────────────────────┘
                            │  writes enrichment back
                            ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                     Local SQLite Database                        │
+│                     Local SQLite Database                       │
 │  lead_records      — full enrichment state per contact          │
 │  scoring_history   — immutable audit log of score changes       │
 │  api_usage_log     — daily call counter per provider            │
