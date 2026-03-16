@@ -1,7 +1,6 @@
 # HubSpot Cold Lead Enrichment & Scoring Tool
 **A Revenue Operations pipeline that turns a cold email address into a
-scored, personalized, and routed HubSpot contact — using only HubSpot's
-free tier and open-source intelligence APIs.**
+scored, personalized, and routed HubSpot contact.
 
 ---
 
@@ -12,14 +11,6 @@ free tier and open-source intelligence APIs.**
 4. [Database Schema Explained](#4-database-schema-explained)
 5. [Scoring Model Explained](#5-scoring-model-explained)
 6. [Personalization Hook System Explained](#6-personalization-hook-system-explained)
-7. [HubSpot Free Tier Constraints & How We Work Around Them](#7-hubspot-free-tier-constraints--how-we-work-around-them)
-8. [Environment Setup — Step by Step](#8-environment-setup--step-by-step)
-9. [First-Time HubSpot Property Provisioning](#9-first-time-hubspot-property-provisioning)
-10. [Running the Pipeline](#10-running-the-pipeline)
-11. [How to Verify It Is Working](#11-how-to-verify-it-is-working)
-12. [RevOps Activation Checklist (HubSpot Side)](#12-revops-activation-checklist-hubspot-side)
-13. [Common Errors & Fixes](#13-common-errors--fixes)
-14. [Rules You Must Never Break](#14-rules-you-must-never-break)
 
 ---
 
@@ -229,20 +220,20 @@ File: `scoring/engine.py`
 ### Score Breakdown (100 points total)
 
 ```
-ICP Industry Fit:   40 pts   ← Is this company in our target industry?
-Seniority:          25 pts   ← Can this person write a check?
-Job Function:       20 pts   ← Is this person in a department we sell to?
-Company Size:       15 pts   ← Is this company the right size for us?
+ICP Industry Fit:   40 pts   ← Is this company in our target industry? What segmentation ahve we targeted?
+Seniority:          25 pts   ← Can this person write a check? (Are they a shot-caller)
+Job Function:       20 pts   ← Is this person in a department we sell to or have they reached out for a demo prior?
+Company Size:       15 pts   ← Is this company the right size for us? What is their revenue?
                    ───────
 Total:             100 pts
 ```
 
 ### Tier Thresholds
 ```
-Hot  ≥ 75   → AE-owned. Highest priority. Max 2-day SLA.
-Warm 50–74  → SDR-owned. Standard sequence. 7-day SLA.
-Cool 25–49  → Nurture track. Low-touch email sequence.
-Cold  < 25  → Suppress. Do not actively contact.
+Hot  ≥ 75   → AE-owned. Highest priority. Max 2-day SLA. Sp
+Warm 50–74  → BDR-owned. Standard sequence. 7-day SLA with personalization angle built in.
+Cool 25–49  → Nurture track. Low-touch email sequence that increases scoring based off how far they get in Flare_Academy.
+Cold  < 25  → Suppress. Do not actively contact. We have actively disqualifed via Trial refusal.
 ```
 
 ### How to Tune the Model
@@ -257,246 +248,15 @@ Cold  < 25  → Suppress. Do not actively contact.
 
 File: `scoring/engine.py` → `build_personalization_hook()`
 
-Templates are keyed by `(job_function, seniority)`. Variables available:
-`{company}`, `{size_desc}`, `{industry}`.
+Templates are keyed by `(job_function, seniority)`. Variables we are querying: Lead status, prior_contact, job_function, level of enrichment
 
 ### Adding New Templates
 1. Identify a `(job_function, seniority)` pair missing from `HOOK_TEMPLATES`
 2. Write a hook sentence for that persona's specific pain point
-3. Add it to `HOOK_TEMPLATES` in `engine.py`
-4. Do NOT rename `{company}`, `{size_desc}`, `{industry}` — the `.format()` call depends on them exactly
+3. Add it to `HOOK_TEMPLATES` to be called via HUBSPOT API
+#The hook templates are going to be focused on ABM marketing's direction. See JR call notes, and what we can do to tweak as API will require different seat / api permissions than demo version.
+5. Do NOT rename `{company}`, `{size_desc}`, `{industry}` — the `.format()` call depends on them exactly
 
----
-
-## 7. HubSpot Free Tier Constraints & How We Work Around Them
-
-| Constraint | Limit | Our Solution |
-|---|---|---|
-| Custom properties | 10 total | 7 contact + 3 company. No exceptions. |
-| API calls per day | ~40,000 | `_check_cap()` halts at 38,000 |
-| API burst rate | 10 req/s | `time.sleep(0.1)` between batches |
-| No custom objects | Free tier | Contact + company properties + SQLite |
-| Batch update limit | 100 records | `BATCH_SIZE=50` gives headroom |
-
-### The 10 Property Budget — DO NOT EXCEED
-```
-CONTACTS (7 slots):
-  1. enrich_status
-  2. enrich_seniority
-  3. enrich_function
-  4. enrich_hook
-  5. lead_total_score
-  6. lead_score_tier
-  7. enrich_payload_json
-
-COMPANIES (3 slots):
-  8. co_employee_range
-  9. co_icp_fit
-  10. co_tech_stack
-```
-
----
-
-## 8. Environment Setup — Step by Step
-
-### Prerequisites
-- Python 3.10+
-- A HubSpot Free account
-- A HubSpot Private App token (not an API key — deprecated)
-- Optional: Hunter.io free account (25 lookups/mo)
-- Optional: None for company enrichment — Wikidata SPARQL is used by default (no key)
-
-### Step 1: Create a virtual environment
-```bash
-python -m venv venv
-source venv/bin/activate        # Mac/Linux
-venv\Scripts\activate           # Windows
-```
-
-### Step 2: Install dependencies
-```bash
-pip install -r requirements.txt
-```
-
-### Step 3: Create your HubSpot Private App token
-1. Go to app.hubspot.com → Settings → Account Setup → Integrations → Private Apps
-2. Create app named `Lead Enrichment Pipeline`
-3. Enable scopes: `crm.objects.contacts.read/write`, `crm.objects.companies.read/write`,
-   `crm.schemas.contacts.read/write`, `crm.schemas.companies.read/write`
-4. Copy the token starting with `pat-na1-`
-
-### Step 4: Configure environment variables
-```bash
-cp .env.example .env
-# Edit .env and fill in HUBSPOT_ACCESS_TOKEN
-```
-
-### Step 5: Initialize the database
-```bash
-python -c "from db.schema import init_db; init_db()"
-```
-Expected output: `DB initialized.`
-
----
-
-## 9. First-Time HubSpot Property Provisioning
-
-```bash
-python main.py --provision
-```
-
-Expected output:
-```
-CREATED: ['contacts.enrich_status', 'contacts.enrich_seniority', ...]
-SKIPPED: []
-FAILED:  []
-```
-
-A `409` response means the property already exists → appears in `SKIPPED`, not `FAILED`.
-
----
-
-## 10. Running the Pipeline
-
-### One-time run
-```bash
-python main.py
-```
-
-### Scheduled daemon
-```bash
-python main.py --schedule
-```
-
-Runs immediately, then repeats every `ENRICH_INTERVAL_HOURS` hours (default: 4).
-
-### What Happens During a Run
-1. `fetch_pending_contacts()` — finds contacts where `enrich_status = Pending` or unset
-2. Extract domain from email
-3. Query Wikidata SPARQL with the domain → company data (industry, employees, HQ when available)
-4. Call Hunter with email → person validation
-5. Infer `seniority` and `job_function` from job title
-6. `score_lead()` → sub-scores + total + tier
-7. `build_personalization_hook()` → 1-line hook
-8. Write to `lead_records` in SQLite; append to `scoring_history` if score changed
-9. `batch_update_contacts()` → write all back to HubSpot
-
----
-
-## 11. How to Verify It Is Working
-
-### Check SQLite has records
-```bash
-python -c "
-from db.schema import Session, LeadRecord
-with Session() as s:
-    count = s.query(LeadRecord).count()
-    complete = s.query(LeadRecord).filter_by(enrichment_status='Complete').count()
-    print(f'Total: {count}, Complete: {complete}')
-"
-```
-
-### Check API usage is within limits
-```bash
-python -c "
-from db.schema import Session, ApiUsageLog
-from datetime import date
-with Session() as s:
-    logs = s.query(ApiUsageLog).filter_by(date=str(date.today())).all()
-    for l in logs:
-        print(f'{l.provider}: {l.call_count}/{l.cap} calls today')
-"
-```
-
-### Check score distribution
-```bash
-python -c "
-from db.schema import Session, LeadRecord
-from sqlalchemy import func
-with Session() as s:
-    tiers = s.query(LeadRecord.score_tier, func.count()).group_by(LeadRecord.score_tier).all()
-    for tier, count in tiers:
-        print(f'{tier}: {count} contacts')
-"
-```
-
-A healthy B2B ICP distribution: Hot 5–15%, Warm 20–35%, Cool 30–40%, Cold 15–30%.
-If >50% are Hot, tighten `ICP_INDUSTRIES` weights in `engine.py`.
-
----
-
-## 12. RevOps Activation Checklist (HubSpot Side)
-
-### Active Lists to Create
-- [ ] **Hot Leads — AE Queue**: `lead_score_tier = Hot` AND `enrich_status = Complete`
-- [ ] **Warm Leads — SDR Queue**: `lead_score_tier = Warm` AND `enrich_status = Complete`
-- [ ] **Nurture Track**: `lead_score_tier = Cool` AND `enrich_status = Complete`
-- [ ] **Enrichment Failed**: `enrich_status = Failed`
-
-### Contact View for Sales
-Columns: `lead_total_score` (sort desc), `lead_score_tier`, `enrich_seniority`, `enrich_function`, `enrich_hook`
-
-### Email Personalization Token
-```
-{{ contact.enrich_hook }}
-```
-
----
-
-## 13. Common Errors & Fixes
-
-| Error | Cause | Fix |
-|---|---|---|
-| `401 Unauthorized` | Token invalid or expired | Re-generate Private App token |
-| `403 Forbidden` on provision | Missing `crm.schemas.contacts.write` scope | Edit Private App, add scope |
-| `Daily cap reached` | Hit 38,000 HubSpot calls | Increase `BATCH_SIZE` or lower enrichment frequency |
-| Wikidata returns no results | Domain not present as an official website in Wikidata | Normal — pipeline uses fallbacks and continues |
-| `SQLite database is locked` | Two pipeline instances running | Kill all, run as single process |
-| All scores are 0 | Job title empty in HubSpot | Ensure `jobtitle` is populated before enrichment |
-| `enrich_hook` blank | Missing `(function, seniority)` pair | Add template to `HOOK_TEMPLATES` in `engine.py` |
-| Contacts stuck as `hs_pending` | HubSpot write kept failing | Check `WARN batch` lines in logs; verify token scopes and cap usage |
-| `WARN batch N failed` in logs | Transient HubSpot error on one batch | Pipeline continues with other batches; affected contacts retry next run |
-
----
-
-## 14. Rules You Must Never Break
-
-1. **Never exceed 10 custom HubSpot properties.** Upgrade to Starter first.
-2. **Never call a HubSpot API endpoint without `_check_cap()` first.**
-3. **Never use the v1 or v2 HubSpot APIs.** Use v3 only.
-4. **Never delete rows from `scoring_history`.** It is an audit log.
-5. **Never change a property `name` after creation.** It is immutable in HubSpot.
-6. **Always use batch endpoints.** 100 contacts = 1 API call.
-7. **Always mark failures** in `lead_records.enrichment_status = "Failed"`.
-
----
-
-## Enrichment Watchdog (Email Alerts)
-
-`watchdog.py` scans SQLite after each pipeline run and emails you a report
-if any of these conditions are true:
-
-- Contacts stuck in `Failed` or `hs_pending` status
-- Enriched contacts missing industry data (Wikidata had no match for the domain)
-- Any API provider at 80%+ of its daily cap
-
-### Setup
-Add these to `.env`:
-```
-WATCHDOG_SMTP_HOST=smtp.gmail.com
-WATCHDOG_SMTP_PORT=587
-WATCHDOG_SMTP_USER=you@gmail.com
-WATCHDOG_SMTP_PASSWORD=your-app-password
-WATCHDOG_NOTIFY_EMAIL=alerts@yourcompany.com
-```
-
-### Run
-```bash
-python watchdog.py
-```
-
-If SMTP is not configured, the report prints to stdout instead. Run it after
-each pipeline pass or on its own cron schedule.
 
 ---
 
